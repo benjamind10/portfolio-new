@@ -35,12 +35,13 @@ const About: React.FC = () => {
               <div className="flex items-start gap-3 mb-4">
                 <User className="text-indigo-500 mt-1" />
                 <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
-                  I design and deploy Unified Namespace architectures, MQTT data
-                  infrastructure, and Ignition-based MES solutions that give
-                  operations teams real-time visibility across the plant floor. I
-                  also apply agentic AI to manufacturing workflows, from automated
-                  code generation to intelligent process orchestration, delivering
-                  production-grade systems faster without sacrificing quality.
+                  I work on the systems layer where plant-floor signals become
+                  useful manufacturing context: UNS topic structures, MQTT flows,
+                  Ignition projects, MES workflows, and the analytics that make
+                  OEE and equipment state visible. I also use agentic AI as part
+                  of that engineering workflow, helping accelerate code,
+                  automation, and process orchestration without losing the
+                  practical constraints of production systems.
                 </p>
               </div>
 

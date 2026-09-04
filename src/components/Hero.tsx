@@ -209,9 +209,9 @@ const Hero: React.FC = () => {
           Manufacturing Software Engineer
         </h2>
         <p className="text-base text-gray-600 dark:text-gray-400 max-w-md mb-6">
-          I architect Unified Namespace systems and apply AI to manufacturing —
-          unifying machines, lines, and sites through MQTT and Ignition into a
-          single source of truth for the plant floor.
+          I build the connective tissue between equipment data, Ignition, and
+          MES workflows: MQTT namespaces, OEE visibility, and practical AI tools
+          that help manufacturing teams move from raw signals to trusted action.
         </p>
         <div className="flex gap-4">
           <a

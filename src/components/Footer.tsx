@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
           <div className="text-center md:text-left">
             <p className="text-xl font-bold text-indigo-500">BD.</p>
             <p className="mt-1 text-gray-500 dark:text-gray-400">
-              UNS architecture · Manufacturing AI · Ignition development
+              Manufacturing systems, data flow, and practical delivery
             </p>
           </div>
 

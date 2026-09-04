@@ -8,7 +8,7 @@ const jobs = [
   {
     title: 'MES Engineer — Fortune Brands Innovations',
     dates: 'Jan 2025 – Present · Hybrid',
-    desc: 'Architected the Unified Namespace from inception to production across multiple facilities. Introduced agentic AI workflows for development acceleration and process automation in a manufacturing environment.',
+    desc: 'Architecting a production Unified Namespace from early design through multi-facility deployment, connecting MQTT, Ignition, and MES context while using agentic AI to accelerate delivery and automate repeatable manufacturing workflows.',
     tags: [
       'UNS',
       'MQTT',
@@ -24,13 +24,13 @@ const jobs = [
   {
     title: 'Software Engineer II — Fuuz',
     dates: 'Nov 2024 – Jan 2025 · Remote',
-    desc: 'Developed MES front-end modules and API integrations for production tracking and scheduling workflows.',
+    desc: 'Built MES front-end modules and API integrations for production tracking, scheduling, and operator-facing workflow screens in a manufacturing software platform.',
     tags: ['TypeScript', 'React', 'MES', 'GraphQL APIs'],
   },
   {
     title: 'MI Solutions Specialist I — GPA',
     dates: 'Jan 2024 – Oct 2024 · Hybrid',
-    desc: 'Designed MQTT-based data pipelines and Ignition Perspective interfaces for real-time industrial monitoring and OEE reporting.',
+    desc: 'Designed MQTT data pipelines and Ignition Perspective views that turned equipment state and line context into real-time monitoring and OEE reporting surfaces.',
     tags: [
       'Ignition',
       'MQTT',
@@ -44,7 +44,7 @@ const jobs = [
   {
     title: 'Full Stack Developer — GPA',
     dates: 'Jul 2022 – Jan 2024',
-    desc: 'Built custom MES applications and Ignition modules with Python and Node.js backends, including REST API services and containerized deployments.',
+    desc: 'Delivered custom MES applications, Ignition modules, Python and Node.js services, REST APIs, and Dockerized deployments for industrial automation support.',
     tags: [
       'Python',
       'Node.js',
