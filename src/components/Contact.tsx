@@ -44,7 +44,7 @@ const Contact: React.FC = () => {
         <FadeInWrapper>
           <SectionHeader
             title="Get In Touch"
-            subtitle="Interested in UNS architecture, manufacturing AI, or Ignition development? Let's connect."
+            subtitle="Have a plant-floor data, Ignition, or MES challenge worth talking through? Let's connect."
           />
         </FadeInWrapper>
 
