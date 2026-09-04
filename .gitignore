@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 .env
+# Riptide artifacts (cloud-synced)
+.humanlayer/tasks/
