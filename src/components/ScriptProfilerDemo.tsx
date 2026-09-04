@@ -16,9 +16,10 @@ const ScriptProfilerDemo: React.FC = () => {
           Ignition Java Module
         </h3>
         <p className="mt-2 text-sm leading-7 text-gray-600 dark:text-gray-300">
-          A custom Java module for Ignition 8.1 that instruments shared script
-          execution, surfaces per-function performance metrics, and identifies
-          bottlenecks in gateway and client scripting environments.
+          A custom Java module for Ignition 8.1 that makes shared script
+          execution visible across gateway and client contexts. It surfaces
+          per-function timing so developers can find bottlenecks in the scripts
+          operators and production workflows depend on.
         </p>
       </div>
       <ImageCarousel images={images} />
