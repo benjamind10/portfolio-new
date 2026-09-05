@@ -1,11 +1,29 @@
 /**
  * Who the site is about. The Hero reads `headline`, `pitch`, and the CTAs;
- * later phases add bio, skills, and principles for About, and Contact and
- * Footer read `links`.
+ * About reads `bio`, `skills`, `principles`, and the optional `resume`;
+ * Contact and Footer read `links`. Names technologies and counts; never a
+ * plant, site code, host, database, or person (design D2).
  */
 export interface Link {
   label: string;
   href: string;
+}
+
+export interface Principle {
+  title: string;
+  /** The piece of work that backs the principle, in one sentence. */
+  evidence: string;
+}
+
+export interface Resume {
+  /** Served from `public/resume.pdf`; the profile test checks the file exists. */
+  href: '/resume.pdf';
+  label: string;
+}
+
+export interface AboutCopy {
+  title: string;
+  principlesHeading: string;
 }
 
 export interface Profile {
@@ -15,7 +33,19 @@ export interface Profile {
   pitch: string;
   cta: { primary: Link; secondary: Link };
   links: { github: string; linkedin: string; email: string };
+  /** About paragraphs, in order. */
+  bio: readonly string[];
+  skills: readonly string[];
+  /** The four operating principles from the design, each tied to evidence. */
+  principles: readonly Principle[];
+  /** Set only when `public/resume.pdf` is present (design D8). */
+  resume?: Resume;
 }
+
+export const ABOUT_COPY: AboutCopy = {
+  title: 'About Me',
+  principlesHeading: 'Operating principles',
+};
 
 export const PROFILE: Profile = {
   name: 'Ben Duran',
@@ -32,4 +62,41 @@ export const PROFILE: Profile = {
     linkedin: 'https://linkedin.com/in/benjamin-duran-3a880a1b9',
     email: 'ben.duran@proton.me',
   },
+  bio: [
+    'I work on the systems layer where plant-floor signals become useful manufacturing context: UNS topic structures, MQTT flows, Ignition projects, MES workflows, and the analytics that make OEE and equipment state visible. I also use agentic AI as part of that engineering workflow, helping accelerate code, automation, and process orchestration without losing the practical constraints of production systems.',
+    'The through-line is architecture: deciding where a contract is enforced, which tier owns which context, and what a downstream consumer, human or agent, can trust without asking. The principles below are the ones that work has held me to.',
+  ],
+  skills: [
+    'UNS Architecture',
+    'MQTT / Sparkplug B',
+    'Ignition Platform',
+    'Agentic AI',
+    'Python',
+    'TypeScript',
+    'Java',
+    'React',
+    'SQL',
+  ],
+  principles: [
+    {
+      title: 'Enforce contracts at the edge',
+      evidence:
+        'Schema-validated broker rules reject a malformed payload before it reaches MES, historian, or warehouse, so every tier downstream reads one shape.',
+    },
+    {
+      title: 'Design for non-human consumers',
+      evidence:
+        'A semantic layer of 11 instances and 47 concepts each exists so agents and services can query the plant model without a person translating for them.',
+    },
+    {
+      title: 'Remove your own workarounds',
+      evidence:
+        'The OEE forensics work unblocked 25 event schemes by fixing three root causes in the model instead of layering another patch on the symptoms.',
+    },
+    {
+      title: 'Persist every decision',
+      evidence:
+        'Ticket, research, plan, execute, verify: each step leaves a written artifact, so a decision can be audited later by someone, or something, that was not in the room.',
+    },
+  ],
 };

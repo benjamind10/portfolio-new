@@ -47,17 +47,18 @@ src/
 │   ├── Navbar.tsx             Sticky nav, theme toggle, mobile menu; anchors from content/sections.ts
 │   ├── Hero.tsx               Landing section: copy from content/profile.ts, 3 animated cards over content/uns.ts (MQTT stream, OEE gauge, UNS path)
 │   ├── Architecture.tsx       Centerpiece: owns selectedId (TierId | 'agentic', default 'broker'); renders diagram + detail from content/architecture.ts
-│   ├── About.tsx              Profile photo, bio, skills, resume download
-│   ├── Experience.tsx         Work timeline (4 jobs, whileInView animation)
+│   ├── About.tsx              Profile photo, bio, skills, four operating principles from PROFILE; resume button only when PROFILE.resume is set
+│   ├── Experience.tsx         Three-seat arc (SEATS legend + per-job seat badge) and timeline over JOBS (whileInView animation)
 │   ├── Work.tsx               Six case studies from content/caseStudies.ts; owns selectedId (string | null, click again to collapse)
 │   ├── ScrollToTopButton.tsx  Fixed scroll-to-top button, shown after 320 px
 │   ├── Contact.tsx            Contact form (EmailJS) + info
 │   └── Footer.tsx             Branding and social links
 ├── content/                   Typed content layer — every export has an exported interface
 │   ├── sections.ts            Section registry: id, label, inNav — page order and nav order
-│   ├── profile.ts             PROFILE: name, headline, pitch, CTAs (primary → #architecture), links → Hero
+│   ├── profile.ts             PROFILE: name, headline, pitch, CTAs (primary → #architecture), links, bio, skills, principles, resume? → Hero, About; ABOUT_COPY
 │   ├── architecture.ts        TIERS (7, TierId union), AGENTIC_LAYER (mcp/semantic/dag, readsFrom tiers 4–7), ARCHITECTURE_COPY → Architecture
 │   ├── caseStudies.ts         CASE_STUDIES (6, D5 order; problem/constraint/decision/result, metrics, tags, media), WORK_COPY → Work
+│   ├── experience.ts          JOBS (4, newest first, each tagged to a Seat), SEATS (integrator / vendor / manufacturer + lesson), EXPERIENCE_COPY → Experience
 │   └── uns.ts                 UNS_ROOT (fictional ISA-95 tree, UnsPayload leaves), getLeaves, MQTT_TOPICS → Hero cards + UnsExplorer
 ├── hooks/
 │   ├── useTheme.ts            Dark/light toggle with localStorage persistence
@@ -79,11 +80,14 @@ tests/
 ├── content/uns.test.ts        UNS tree invariants: fullPath chain, leaf payloads in [0,1], topic count
 ├── content/architecture.test.ts  7 tiers indexed 1..7, non-empty fields, broker schemaRule, readsFrom ⊆ tiers 4–7
 ├── content/caseStudies.test.ts  6 studies, unique ids in D5 order, four narrative fields + ≥1 metric each, carousels reference 5 and 2 images
+├── content/experience.test.ts  4 jobs, every seat is a SEATS key, all three seats present, JOBS[0].title is the title of record
+├── content/profile.test.ts  Exactly 4 principles; if PROFILE.resume is set, public/resume.pdf must exist
 ├── components/architecture.test.tsx  Click each tier → only its decision shows; broker shows a UNS leaf path; agentic panel
 ├── components/work.test.tsx   Select a card → aria-expanded + its decision; select another → first collapses; carousel studies show images
 ├── components/imageCarousel.test.tsx  Lightbox: role=dialog, aria-modal, focus on Close, Tab cycles inside, Escape closes, focus returns
 ├── smoke/app.test.tsx         Renders App: landmarks, one section per SECTIONS id, nav anchors
 ├── smoke/hero.test.tsx        Hero renders PROFILE copy; cards tick under fake timers
+├── smoke/about-experience.test.tsx  About renders bio / skills / principles, resume link iff PROFILE.resume; Experience renders every job and seat
 └── hooks/useActiveSection.test.tsx
 .github/workflows/ci.yml       lint → typecheck → test → build
 ```
@@ -120,8 +124,8 @@ No environment variables are needed to run the site. The contact form reads `VIT
 | `Navbar.tsx` | Sticky nav; only consumer of `useTheme` |
 | `Hero.tsx` | Intro copy from `PROFILE`; 3 dashboard cards (MQTT stream, OEE gauge, UNS path) driven by `UNS_ROOT` leaves and `MQTT_TOPICS` — simulated, no real MQTT |
 | `Architecture.tsx` | Seven-tier reference architecture + agentic layer from `TIERS` / `AGENTIC_LAYER`; click a tier (or the agentic block) → `TierDetail` / `AgenticDetail`; broker detail embeds `UnsExplorer` over `UNS_ROOT` |
-| `About.tsx` | Profile, skills, resume download link |
-| `Experience.tsx` | Timeline with `motion.div whileInView` animations |
+| `About.tsx` | Profile photo, bio paragraphs, skills, and four operating principles from `PROFILE`; resume download rendered only when `PROFILE.resume` is set |
+| `Experience.tsx` | Three-seat arc (`SEATS`: integrator / vendor / manufacturer) and a timeline over `JOBS` from `content/experience.ts`; per-item `motion.div whileInView`, reduced motion via the root `MotionConfig` |
 | `Work.tsx` | Six case studies from `CASE_STUDIES` as a card grid; one expands inline at a time into `CaseStudyPanel`; studies 1–4 embed a diagram, 5–6 embed `ImageCarousel` |
 | `ImageCarousel.tsx` | Reusable carousel: prev/next nav, position indicator, Framer Motion transitions; click the image → lightbox dialog (focus trap, Escape, focus return) |
 | `Contact.tsx` | Contact info + non-functional form |
@@ -205,7 +209,7 @@ Hero and FadeInWrapper additionally read useReducedMotion() to drop the backgrou
 2. **`useActiveSection` wants a stable `ids` array** — pass the module constant `SECTION_IDS` (or memoize); a fresh array each render rebuilds the observer
 3. **Contact form fails without EmailJS env** — `emailjs.send` rejects before any network call when the three `VITE_EMAILJS_*` keys are undefined, and the UI shows "Something went wrong"
 4. **`tests/public-safety.test.ts` fails the build on internal names** — it scans `src/**/*.{ts,tsx}` and `index.html` for SHA-256-hashed tokens (brands, colleagues, site codes, hostnames, database names) and shape regexes (IPv4, `.corp`/`.local`, `ABC12`/`1AB` site codes, `XX00MES` databases). Never add plaintext to the hash list; the regeneration one-liner is in the file header. The fictional namespace is `Enterprise/Plant-A/…`, never a real place
-5. **`public/resume.pdf` must exist** — the About section has a hard-coded download link to `/resume.pdf`; if the file is missing, the button 404s silently
+5. **Resume button is gated by `PROFILE.resume`** — About renders the download link only when `PROFILE.resume` is set in `src/content/profile.ts`, and `tests/content/profile.test.ts` fails if it is set while `public/resume.pdf` is absent. To ship the resume, add the PDF and set `resume: { href: '/resume.pdf', label: 'Download Resume' }`
 
 ---
 
