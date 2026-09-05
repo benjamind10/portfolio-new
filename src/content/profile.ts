@@ -24,7 +24,7 @@ export const PROFILE: Profile = {
   pitch:
     'I design the data models that let manufacturing systems be reasoned about automatically: Unified Namespaces with contracts enforced at the edge, MES context on Ignition, and semantic layers built for machine consumers, so people and AI agents work from one trusted model of the plant.',
   cta: {
-    primary: { label: 'View Demos', href: '#demos' },
+    primary: { label: 'Explore the Architecture', href: '#architecture' },
     secondary: { label: 'Contact', href: '#contact' },
   },
   links: {

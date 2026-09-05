@@ -2,8 +2,17 @@
  * Single registry of page sections. `App` mounts them in this order,
  * `Navbar` renders the `inNav` entries as links, and `useActiveSection`
  * observes every id to drive the active-link indicator.
+ *
+ * Order follows design D3 (proof before biography). `demos` holds the Work
+ * slot until Phase 4 renames it.
  */
-export type SectionId = 'hero' | 'about' | 'experience' | 'demos' | 'contact';
+export type SectionId =
+  | 'hero'
+  | 'architecture'
+  | 'demos'
+  | 'experience'
+  | 'about'
+  | 'contact';
 
 export interface Section {
   id: SectionId;
@@ -13,9 +22,10 @@ export interface Section {
 
 export const SECTIONS: readonly Section[] = [
   { id: 'hero', label: 'Home', inNav: false },
-  { id: 'about', label: 'About', inNav: true },
-  { id: 'experience', label: 'Experience', inNav: true },
+  { id: 'architecture', label: 'Architecture', inNav: true },
   { id: 'demos', label: 'Projects', inNav: true },
+  { id: 'experience', label: 'Experience', inNav: true },
+  { id: 'about', label: 'About', inNav: true },
   { id: 'contact', label: 'Contact', inNav: true },
 ];
 

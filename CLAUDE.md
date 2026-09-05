@@ -1,6 +1,6 @@
 # CLAUDE.md — Portfolio Project
 
-Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page application showcasing skills in Ignition, MQTT, and Unified Namespace (UNS). No backend, no router, no global state library. Single scrollable page with five sections.
+Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page application showcasing skills in Ignition, MQTT, and Unified Namespace (UNS). No backend, no router, no global state library. Single scrollable page with six sections in the order Hero → Architecture → Projects (`demos`) → Experience → About → Contact.
 
 ---
 
@@ -34,8 +34,14 @@ src/
 │   │   ├── FadeInWrapper.tsx  Framer Motion scroll-triggered fade-in wrapper
 │   │   ├── ImageCarousel.tsx  Reusable prev/next image carousel with Framer Motion
 │   │   └── SectionHeader.tsx  Section title + indigo divider + optional subtitle
+│   ├── architecture/
+│   │   ├── ArchitectureDiagram.tsx  7 TierCards in a grid + SVG connectors + agentic-layer button under tiers 4–7
+│   │   ├── TierCard.tsx       aria-pressed tier button; shared-layout indigo ring on the selected card
+│   │   ├── TierDetail.tsx     layoutId panel: purpose / why separate / decision / technologies; broker embeds UnsExplorer. Also exports AgenticDetail
+│   │   └── UnsExplorer.tsx    Expandable topic tree over UNS_ROOT; selected leaf shows payload + schema rule
 │   ├── Navbar.tsx             Sticky nav, theme toggle, mobile menu; anchors from content/sections.ts
 │   ├── Hero.tsx               Landing section: copy from content/profile.ts, 3 animated cards over content/uns.ts (MQTT stream, OEE gauge, UNS path)
+│   ├── Architecture.tsx       Centerpiece: owns selectedId (TierId | 'agentic', default 'broker'); renders diagram + detail from content/architecture.ts
 │   ├── About.tsx              Profile photo, bio, skills, resume download
 │   ├── Experience.tsx         Work timeline (4 jobs, whileInView animation)
 │   ├── Demos.tsx              Tab container for image-based demos (UNS Simulator, Ignition Java Module)
@@ -46,8 +52,9 @@ src/
 │   └── Footer.tsx             Branding and social links
 ├── content/                   Typed content layer — every export has an exported interface
 │   ├── sections.ts            Section registry: id, label, inNav — page order and nav order
-│   ├── profile.ts             PROFILE: name, headline, pitch, CTAs, links → Hero
-│   └── uns.ts                 UNS_ROOT (fictional ISA-95 tree, UnsPayload leaves), getLeaves, MQTT_TOPICS → Hero cards
+│   ├── profile.ts             PROFILE: name, headline, pitch, CTAs (primary → #architecture), links → Hero
+│   ├── architecture.ts        TIERS (7, TierId union), AGENTIC_LAYER (mcp/semantic/dag, readsFrom tiers 4–7), ARCHITECTURE_COPY → Architecture
+│   └── uns.ts                 UNS_ROOT (fictional ISA-95 tree, UnsPayload leaves), getLeaves, MQTT_TOPICS → Hero cards + UnsExplorer
 ├── hooks/
 │   ├── useTheme.ts            Dark/light toggle with localStorage persistence
 │   └── useActiveSection.ts    IntersectionObserver over section ids → active nav link
@@ -66,6 +73,8 @@ tests/
 ├── setup.ts                   jest-dom matchers; matchMedia + IntersectionObserver stubs
 ├── public-safety.test.ts      Denylist scan of src/**/*.{ts,tsx} + index.html (hashed tokens + shape regexes)
 ├── content/uns.test.ts        UNS tree invariants: fullPath chain, leaf payloads in [0,1], topic count
+├── content/architecture.test.ts  7 tiers indexed 1..7, non-empty fields, broker schemaRule, readsFrom ⊆ tiers 4–7
+├── components/architecture.test.tsx  Click each tier → only its decision shows; broker shows a UNS leaf path; agentic panel
 ├── smoke/app.test.tsx         Renders App: landmarks, one section per SECTIONS id, nav anchors
 ├── smoke/hero.test.tsx        Hero renders PROFILE copy; cards tick under fake timers
 └── hooks/useActiveSection.test.tsx
@@ -100,9 +109,10 @@ No environment variables are needed to run the site. The contact form reads `VIT
 
 | Component | Purpose |
 |-----------|---------|
-| `App.tsx` | Assembles all sections in page order |
+| `App.tsx` | Assembles all sections in `SECTIONS` order: Hero, Architecture, Demos, Experience, About, Contact; tints alternate (Architecture, Experience, Contact tinted) |
 | `Navbar.tsx` | Sticky nav; only consumer of `useTheme` |
 | `Hero.tsx` | Intro copy from `PROFILE`; 3 dashboard cards (MQTT stream, OEE gauge, UNS path) driven by `UNS_ROOT` leaves and `MQTT_TOPICS` — simulated, no real MQTT |
+| `Architecture.tsx` | Seven-tier reference architecture + agentic layer from `TIERS` / `AGENTIC_LAYER`; click a tier (or the agentic block) → `TierDetail` / `AgenticDetail`; broker detail embeds `UnsExplorer` over `UNS_ROOT` |
 | `About.tsx` | Profile, skills, resume download link |
 | `Experience.tsx` | Timeline with `motion.div whileInView` animations |
 | `Demos.tsx` | Tab switcher — 2 tabs: UNS Simulator, Ignition Java Module |
@@ -143,7 +153,16 @@ content/uns.ts UNS_ROOT (Enterprise/Plant-A/… with UnsPayload leaves)
 → gauge color class from oeeFillClass() (fill-gauge-good|warn|bad); state color from text-status-*
 ```
 
-### 4. Reduced Motion
+### 4. Architecture Section
+```
+content/architecture.ts TIERS (7, index 1..7) + AGENTIC_LAYER (readsFrom ⊆ tiers 4–7)
+→ Architecture owns selectedId: TierId | 'agentic' (default 'broker')
+→ ArchitectureDiagram: TierCard buttons (aria-pressed) + SVG connectors; agentic button spans the consumed columns
+→ TierDetail (layoutId "architecture-detail") shows purpose / whySeparate / decision / technologies
+→ tier.id === 'broker' → <UnsExplorer root={UNS_ROOT} schemaRule={tier.schemaRule} /> — same tree the Hero streams
+```
+
+### 5. Reduced Motion
 ```
 <MotionConfig reducedMotion="user"> in App.tsx
 → every framer-motion element honors prefers-reduced-motion (transforms skipped, opacity kept)

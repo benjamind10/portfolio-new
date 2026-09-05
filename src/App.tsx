@@ -1,11 +1,12 @@
 import { MotionConfig } from 'framer-motion';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-import About from './components/About';
-import Footer from './components/Footer';
-import Experience from './components/Experience';
-import Contact from './components/Contact';
+import Architecture from './components/Architecture';
 import Demos from './components/Demos';
+import Experience from './components/Experience';
+import About from './components/About';
+import Contact from './components/Contact';
+import Footer from './components/Footer';
 import ScrollToTopButton from './components/ScrollToTopButton';
 
 function App() {
@@ -15,9 +16,10 @@ function App() {
         <Navbar />
         <main>
           <Hero />
-          <About />
-          <Experience />
+          <Architecture />
           <Demos />
+          <Experience />
+          <About />
           <Contact />
         </main>
         <Footer />

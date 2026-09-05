@@ -59,7 +59,10 @@ const jobs = [
 
 const Experience: React.FC = () => {
   return (
-    <section id="experience" className="scroll-mt-24">
+    <section
+      id="experience"
+      className="scroll-mt-24 bg-gray-50/70 dark:bg-gray-800/30"
+    >
       <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
         <SectionHeader title="Experience" />
 

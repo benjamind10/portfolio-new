@@ -38,7 +38,10 @@ const Contact: React.FC = () => {
   };
 
   return (
-    <section id="contact" className="scroll-mt-24">
+    <section
+      id="contact"
+      className="scroll-mt-24 bg-gray-50/70 dark:bg-gray-800/30"
+    >
       <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
         {/* Animated Title */}
         <FadeInWrapper>
