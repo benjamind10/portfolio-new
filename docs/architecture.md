@@ -1,171 +1,187 @@
 # Architecture Reference
 
-Deep-reference document for the portfolio SPA. See [CLAUDE.md](../CLAUDE.md) for the quick-start overview.
+Deep-reference document for the portfolio SPA. See [CLAUDE.md](../CLAUDE.md) for the quick-start overview and conventions.
 
 ---
 
 ## Component Tree
 
 ```
-index.html
-└── src/main.tsx
-    └── <App />                          src/App.tsx
-        ├── <Navbar />                   src/components/Navbar.tsx
-        └── <main>
-            ├── <Hero />                 src/components/Hero.tsx
-            ├── <About />                src/components/About.tsx
-            ├── <Experience />           src/components/Experience.tsx
-            ├── <Demos />                src/components/Demos.tsx
-            │   ├── <UNSExplorer />      src/components/UNSExplorer.tsx
-            │   ├── <MQTTExplorer />     src/components/MQTTExplorer.tsx
-            │   └── <ScriptProfilerDemo /> src/components/ScriptProfilerDemo.tsx
-            └── <Contact />              src/components/Contact.tsx
-        └── <Footer />                   src/components/Footer.tsx
+index.html                                  meta description / OG / Twitter tags, image/png favicon, fonts, pre-paint theme script
+└── src/main.tsx                            StrictMode + createRoot
+    └── <App />                             src/App.tsx — <MotionConfig reducedMotion="user">
+        ├── <Navbar />                      src/components/Navbar.tsx — useTheme, useActiveSection, NAV_SECTIONS
+        ├── <main>
+        │   ├── <Hero />                    src/components/Hero.tsx — PROFILE copy; three cards over UNS_ROOT / MQTT_TOPICS
+        │   ├── <Architecture />            src/components/Architecture.tsx — owns selectedId (TierId | 'agentic')
+        │   │   ├── <ArchitectureDiagram /> src/components/architecture/ArchitectureDiagram.tsx
+        │   │   │   └── <TierCard /> × 7    src/components/architecture/TierCard.tsx — aria-pressed buttons
+        │   │   └── <TierDetail /> | <AgenticDetail />  src/components/architecture/TierDetail.tsx
+        │   │       └── <UnsExplorer />     src/components/architecture/UnsExplorer.tsx (broker tier only)
+        │   ├── <Work />                    src/components/Work.tsx — owns selectedId (string | null)
+        │   │   └── <CaseStudyGrid />       src/components/work/CaseStudyGrid.tsx
+        │   │       ├── <CaseStudyCard /> × 6   src/components/work/CaseStudyCard.tsx — aria-expanded buttons
+        │   │       └── <CaseStudyPanel />  src/components/work/CaseStudyPanel.tsx (the selected study only)
+        │   │           ├── <ImageCarousel />   src/components/common/ImageCarousel.tsx (studies 5–6)
+        │   │           └── one of TierStackDiagram | AgentDagDiagram | SemanticLayerDiagram | OeeForensicsDiagram
+        │   │                               src/components/work/diagrams/ (studies 1–4)
+        │   ├── <Experience />              src/components/Experience.tsx — SEATS legend + JOBS timeline
+        │   ├── <About />                   src/components/About.tsx — bio, skills, principles, optional resume
+        │   └── <Contact />                 src/components/Contact.tsx — ContactForm | MailtoCta
+        ├── <Footer />                      src/components/Footer.tsx — PROFILE.links
+        └── <ScrollToTopButton />           src/components/ScrollToTopButton.tsx — visible after 320 px
 ```
 
-**Shared utilities:**
-- `src/components/common/FadeInWrapper.tsx` — Framer Motion scroll-in animation wrapper
-- `src/utils/cn.ts` — classname helper (`...classes.filter(Boolean).join(' ')`)
+**Shared components:**
+- `src/components/common/SectionHeader.tsx` — title, `w-16 h-1 bg-indigo-500` divider, optional subtitle; every section uses it
+- `src/components/common/FadeInWrapper.tsx` — Framer Motion `whileInView` fade-in (`delay`, `yOffset`, `className`; `viewport={{ once: true, amount: 0.2 }}`; drops the offset and delay under reduced motion)
+- `src/components/common/ImageCarousel.tsx` — prev/next carousel; the image is a `<button>` that opens a portaled lightbox (`role="dialog" aria-modal="true" aria-label={label}`) with focus on Close, a Tab/Shift+Tab trap, Escape to close, and focus return to the opener
 
-**Dead code (defined, not used):**
-- `src/components/NamespaceExplorer.tsx` — D3 SVG tree (commented out in Demos.tsx)
-- `src/components/LogSimulator.tsx` — log stream UI (commented out in Demos.tsx)
+**Utilities:**
+- `src/utils/cn.ts` — classname helper (`classes.filter(Boolean).join(' ')`)
+- `src/utils/emailConfig.ts` — `getEmailConfig(env = import.meta.env): EmailConfig | null`
+
+Every component under `src/components/` is reachable from `App.tsx`; there is no dead code.
 
 ---
 
-## Page Sections
+## Content Layer — `src/content/`
 
-| Section | File | `id` | scroll-mt / offset |
-|---------|------|------|--------------------|
-| Hero | `Hero.tsx` | `hero` | `offset={-96}` |
-| About | `About.tsx` | `about` | `scroll-mt-24` + `offset={-96}` |
-| Experience | `Experience.tsx` | `experience` | `scroll-mt-24` + `offset={-96}` |
-| Demos | `Demos.tsx` | `demos` | `scroll-mt-24` + `offset={-96}` |
-| Contact | `Contact.tsx` | `contact` | `scroll-mt-24` + `offset={-96}` |
+Components render; copy and structure live here. Every exported value has an exported interface, and `tests/public-safety.test.ts` scans this directory (and everything else under `src/`) on every run.
 
-Navbar uses `react-scroll` `<Link>` with `smooth={true}`, `offset={-96}`, `duration={500}`.
+| Module | Exports | Consumers |
+|--------|---------|-----------|
+| `sections.ts` | `SectionId` (closed union `hero \| architecture \| work \| experience \| about \| contact`), `Section { id, label, inNav }`, `SECTIONS` (page order), `SECTION_IDS`, `NAV_SECTIONS` | `App` (order), `Navbar` (links), `useActiveSection` (observed ids) |
+| `profile.ts` | `PROFILE: Profile { name, headline, pitch, cta, links { github, linkedin, email, location? }, bio, skills, principles, resume? }`, `ABOUT_COPY`, `CONTACT_COPY`, plus `Link`, `Principle`, `Resume` | `Hero`, `About`, `Contact`, `Footer`; `index.html` mirrors `headline` / `pitch` by hand (checked by `tests/shell.test.ts`) |
+| `uns.ts` | `UnsPayload { oee, availability, performance, quality }` (0–1 floats), `UnsNode { name, fullPath, payload?, children? }`, `UnsLeaf`, `UNS_ROOT`, `getLeaves()`, `hasPayload()`, `MQTT_TOPICS` | `Hero` (cards), `UnsExplorer` (via `TierDetail`) |
+| `architecture.ts` | `TierId` (7-member union), `Tier { id, index 1–7, name, purpose, whySeparate, decision, technologies, schemaRule? }`, `TIERS`, `AgenticComponent { id: mcp \| semantic \| dag, name, purpose, readsFrom }`, `AGENTIC_LAYER`, `ARCHITECTURE_COPY` | `Architecture`, `ArchitectureDiagram`, `TierDetail`, `TierStackDiagram` |
+| `caseStudies.ts` | `CaseStudy { id, title, summary, problem, constraint, decision, result, metrics, tags, media, links? }`, `Media` (`carousel` with images \| `diagram` with a `DiagramKind`), `CaseStudyImage`, `Metric`, `CASE_STUDIES` (6), `WORK_COPY` | `Work`, `CaseStudyGrid`, `CaseStudyCard`, `CaseStudyPanel` |
+| `experience.ts` | `Seat` (`integrator \| vendor \| manufacturer`), `SeatInfo { label, lesson }`, `SEATS`, `Job { id, title, org, dates, mode?, summary, seat, tags }`, `JOBS` (4, newest first), `EXPERIENCE_COPY` | `Experience` |
 
----
+### The namespace model
 
-## Theming System
-
-**Hook**: `src/hooks/useTheme.ts`
-
-```
-localStorage.getItem('theme')
-  → found: use stored value ('light' | 'dark')
-  → not found: check window.matchMedia('prefers-color-scheme: dark')
-       → match: 'dark'
-       → no match: 'light'
-
-useEffect on [theme]:
-  document.documentElement.classList.add('dark')   // or 'light'
-  document.documentElement.classList.remove(other)
-  localStorage.setItem('theme', theme)
-```
-
-**Consumer**: `useTheme` is called only in `src/components/Navbar.tsx:7`. The `toggle` function is wired to Sun/Moon icon buttons (desktop + mobile).
-
-**Tailwind integration**: Tailwind v4 class-based dark mode — `dark:` prefixed classes throughout. The root `<div>` in `App.tsx:11` sets base colors:
-```
-bg-white text-gray-900 dark:bg-gray-900 dark:text-white
-```
-
-**Gotcha**: `useTheme` must only be instantiated once. Do not call it in multiple components — it creates independent state. Pass `toggle` as a prop if other components need it.
+`uns.ts` declares a nested spec (`Enterprise → Plant-A → areas → lines → work cells`) and `materialize()` derives each node's `fullPath` from its ancestry, so paths can never disagree with the tree. Leaves carry an `UnsPayload`; `oee` is computed as `availability × performance × quality`. `MQTT_TOPICS` is one `<leaf.fullPath>/state` per leaf. The names are fictional and ISA-95-shaped; nothing here is a real plant, site, host, or machine, and the denylist test keeps it that way.
 
 ---
 
-## MQTT Integration
+## Data Flows
 
-### Module-level client (unused): `src/hooks/useMqtt.ts`
-Connects at import time using `VITE_MQTTBROKER`. Subscribes to `#`. Logs all messages to console. **Not imported anywhere in the component tree** — effectively dead code or a future integration stub.
-
-### MQTTExplorer component: `src/components/MQTTExplorer.tsx`
-Self-contained dual-mode MQTT client managed in `useEffect`:
+### Theme toggle
 
 ```
-isSimulated = true (default)
-  → setInterval 2000ms
-  → generates random { topic, timestamp, payload } from simulatedTopics[]
-  → cleanup: clearInterval
-
-isSimulated = false (live)
-  → mqtt.connect(VITE_MQTTBROKER)
-  → subscribe('#')
-  → on('message'): JSON.parse payload → append to messages[]
-  → cleanup: client.end()
+Navbar Sun/Moon click
+→ useTheme.toggle()                        src/hooks/useTheme.ts
+→ setTheme('light' | 'dark')
+→ useEffect: <html> classList add/remove 'dark' / 'light'; localStorage.setItem('theme', …)
+→ Tailwind `dark:` variants respond (@custom-variant dark in src/index.css)
 ```
 
-**Message buffer**: capped at 50 — `prev.slice(-49)` pattern.
+Initial value: `localStorage.theme`, else `prefers-color-scheme: dark`. An inline script at the bottom of `index.html` applies the same rule before React mounts so there is no flash. `useTheme` is instantiated once, in `Navbar`.
 
-**Layout**: 2-column grid — left panel lists unique topics (sorted), right panel shows `<JsonView>` for selected topic's latest message.
+### Section navigation
 
-**Env var required**: `VITE_MQTTBROKER=wss://broker.hivemq.com:8884/mqtt` in `.env`
+```
+SECTIONS (content/sections.ts)
+→ Navbar: <a href="#id"> for each NAV_SECTIONS entry; logo → #hero
+→ html { scroll-behavior: smooth } (auto under prefers-reduced-motion) + section.scroll-mt-24
+→ useActiveSection(SECTION_IDS): one IntersectionObserver, rootMargin '-96px 0px 0px 0px' (the sticky nav's height), thresholds 0…1 in tenths
+→ most-visible id → aria-current="true" + indigo text on the matching link
+```
+
+Pass `useActiveSection` a stable array (`SECTION_IDS` is a module constant); a fresh array every render would rebuild the observer.
+
+### Hero cards
+
+```
+UNS_ROOT → getLeaves().filter(hasPayload) → OEE nodes; MQTT_TOPICS
+→ three setIntervals (2500 / 4000 / 3500 ms) advance the MQTT message, the OEE node, and the UNS breadcrumb
+→ OEE gauge: d3-shape arc(); fill class from oeeFillClass() → fill-gauge-good | warn | bad
+→ equipment state colour: text-status-running | idle | stopped | error
+```
+
+Everything is simulated locally; there is no broker connection and no MQTT dependency. Under reduced motion the background SVG is dropped and the cards render statically.
+
+### Architecture section
+
+```
+TIERS + AGENTIC_LAYER
+→ Architecture owns selectedId: TierId | 'agentic' (default 'broker')
+→ ArchitectureDiagram: 7 TierCard buttons (aria-pressed) in a grid, inline SVG connectors, an agentic-layer button spanning the tiers it reads from (4–7)
+→ TierDetail (layoutId "architecture-detail"): purpose / whySeparate / decision / technologies
+   └── tier.id === 'broker' → <UnsExplorer root={UNS_ROOT} schemaRule={tier.schemaRule} />
+→ AgenticDetail (same layoutId) for the 'agentic' selection
+```
+
+Only the selected tier's text is in the DOM (mount-only content animation, no exit), which is what lets the component test assert "this decision and no other".
+
+### Work section
+
+```
+CASE_STUDIES + WORK_COPY
+→ Work owns selectedId: string | null (nothing open by default; clicking the open card collapses it)
+→ CaseStudyGrid (grid-flow-row-dense): CaseStudyCard buttons; the selected study's CaseStudyPanel follows its card with col-span-full
+→ CaseStudyPanel: problem / constraint / decision / result, metrics, then
+   media.kind === 'carousel' → <ImageCarousel images label />
+   media.kind === 'diagram'  → TierStackDiagram | AgentDagDiagram | SemanticLayerDiagram | OeeForensicsDiagram
+```
+
+`TierStackDiagram` reads `TIERS` rather than duplicating tier names.
+
+### Contact
+
+```
+getEmailConfig(import.meta.env)            src/utils/emailConfig.ts
+→ all three VITE_EMAILJS_* keys non-empty → <ContactForm config /> → emailjs.send(config.serviceId, config.templateId, fields, config.publicKey)
+→ any key missing → <MailtoCta email={PROFILE.links.email} />
+```
+
+Vite inlines `import.meta.env.VITE_*` at build time, so the branch is fixed per build. `Contact` accepts an optional `config` prop so tests can drive either branch without touching the environment. The form's ids come only from the resolved config, never from `import.meta.env` directly.
+
+### Reduced motion
+
+`<MotionConfig reducedMotion="user">` in `App.tsx` makes every framer-motion element skip transforms (opacity still animates) when `prefers-reduced-motion` is set. `Hero` and `FadeInWrapper` additionally call `useReducedMotion()` to drop the background SVG and the stagger delays. `index.css` resets `scroll-behavior` to `auto` under the same media query.
 
 ---
 
-## UNS Data Structures
+## Design Tokens
 
-Two separate files, two separate consumers — do not interchange them.
+`src/index.css` holds the only hex literals in the project, inside an `@theme` block. Tailwind v4 turns each into a utility:
 
-### `src/data/unsData.ts` → `UNSExplorer.tsx`
+| Token family | Tokens | Utilities used |
+|--------------|--------|----------------|
+| Accent | `--color-accent-500/600` | mirrors `indigo-500/600` |
+| Surfaces | `--color-surface-card`, `--color-surface-footer` | `bg-surface-card` (Hero cards, dark), `dark:bg-surface-footer` |
+| Equipment state | `--color-status-running/idle/stopped/error` | `text-status-*` in the MQTT card |
+| OEE gauge | `--color-gauge-good/warn/bad/track/label` | `fill-gauge-*` on the d3-shape arcs |
+| Type | `--font-mono` (JetBrains Mono) | `font-mono` on topics, paths, payloads |
 
-```typescript
-type UnsNode = {
-  name: string;
-  fullPath: string;   // e.g. "Enterprise/Richmond/Press/Line1"
-  payload?: any;      // leaf-node data (OEE metrics)
-  children?: UnsNode[];
-};
-```
-
-Tree: `Enterprise → Richmond → Press → Line1 (OEE payload)`
-
-`UNSExplorer` walks this recursively, toggling `Record<string, boolean>` expand state keyed by `fullPath`. Leaf nodes with `payload` render a `<pre>` JSON block.
-
-### `src/data/unsTree.ts` → `NamespaceExplorer.tsx` (currently unused)
-
-```typescript
-{ name: string; children?: { name, children? }[] }
-```
-
-Simpler shape — no `fullPath`, no `payload`. Used only by D3's `d3.hierarchy()` which walks `children` arrays natively.
-
-Tree: `factory → line1 → machine1/{state,infeed,outfeed}, machine2/state`
+Inter (body) and JetBrains Mono are both requested from Google Fonts in `index.html`.
 
 ---
 
-## Demos Tab System
+## Tests — `tests/`
 
-**File**: `src/components/Demos.tsx`
+Vitest 5 + Testing Library under jsdom; `tests/setup.ts` registers jest-dom matchers and stubs `window.matchMedia` and `IntersectionObserver` (the latter as a recording mock with a `trigger(entries)` helper).
 
-`TABS` array drives the tab list. To add a demo:
-1. Import the component at the top of `Demos.tsx`
-2. Add `{ key: 'yourkey', label: 'Tab Label', component: <YourComponent /> }` to the `TABS` array
-3. Give the component an `id` if it needs independent scroll behavior
+| File | Guards |
+|------|--------|
+| `public-safety.test.ts` | No denylisted token (SHA-256-hashed; brands, colleagues, site codes, hostnames, database names, MCP connection names) or shape (IPv4, `.corp`/`.local`, site-code and database-name patterns) in `src/**/*.{ts,tsx}` or `index.html`; includes a self-check on a known-bad fixture |
+| `shell.test.ts` | `index.html` favicon `type="image/png"`; description / `og:*` / `twitter:*` text equals `PROFILE.pitch` and `PROFILE.name — PROFILE.headline`; both fonts requested |
+| `content/uns.test.ts` | `fullPath` chain, leaf payloads in [0, 1], `MQTT_TOPICS.length === leaves` |
+| `content/architecture.test.ts` | 7 tiers indexed 1..7, non-empty fields, broker `schemaRule`, `readsFrom ⊆ TIERS` |
+| `content/caseStudies.test.ts` | 6 studies, unique ids, four narrative fields + ≥ 1 metric, carousels reference 5 and 2 images |
+| `content/experience.test.ts` | 4 jobs, every seat is a `SEATS` key, all three seats present, `JOBS[0].title` is the title of record |
+| `content/profile.test.ts` | Exactly 4 principles; if `PROFILE.resume` is set, `public/resume.pdf` exists |
+| `components/architecture.test.tsx` | Click each tier → only its decision shows; broker shows a leaf path; agentic panel |
+| `components/work.test.tsx` | One study expanded at a time; `aria-expanded`; carousel studies show images |
+| `components/imageCarousel.test.tsx` | Lightbox dialog semantics, focus trap, Escape, focus return |
+| `components/contact.test.tsx` | `getEmailConfig` null-unless-complete; mailto vs form branch; send uses the injected config (EmailJS mocked); labeled socials |
+| `smoke/app.test.tsx` | Landmarks; one `section[id]` per `SECTIONS` entry in order; nav anchors |
+| `smoke/hero.test.tsx` | Hero renders `PROFILE` copy; cards tick under fake timers |
+| `smoke/about-experience.test.tsx` | About renders bio / skills / principles, resume link iff `PROFILE.resume`; Experience renders every job and seat |
+| `hooks/useActiveSection.test.tsx` | Returned id follows the most-visible stubbed entry |
 
-Default active tab: `'mqtt'` (line 19).
-
----
-
-## Animation Pattern
-
-### `FadeInWrapper` — `src/components/common/FadeInWrapper.tsx`
-Scroll-triggered fade-in via Framer Motion `whileInView`. Re-triggers on scroll back (`once: false`).
-
-```tsx
-<FadeInWrapper delay={0.1} yOffset={30}>
-  {children}
-</FadeInWrapper>
-```
-
-Props: `delay` (default `0`), `yOffset` (default `20`), `className` (default `''`).
-
-Used in: `About.tsx`, `Contact.tsx`.
-
-### Inline `motion.div` — `Hero.tsx`, `Experience.tsx`
-- **Hero**: uses `initial/animate` (plays immediately on mount, not scroll-triggered)
-- **Experience**: uses `whileInView` directly with `viewport={{ once: true }}` (plays once, does not re-trigger)
+CI (`.github/workflows/ci.yml`, Node 22) runs `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` as separate steps on push and pull request.
 
 ---
 
@@ -173,16 +189,15 @@ Used in: `About.tsx`, `Contact.tsx`.
 
 | Convention | Detail |
 |------------|--------|
-| CSS framework | Tailwind CSS v4 via `@tailwindcss/vite` plugin |
-| Dark mode | Class-based: `dark:` prefix; toggled on `<html>` element |
+| CSS framework | Tailwind CSS v4 via `@tailwindcss/vite`; no `tailwind.config.js`, no PostCSS config |
+| Dark mode | Class-based: `dark:` prefix; `.dark` toggled on `<html>` by `useTheme` and the pre-paint script |
 | Accent color | `indigo-500` / `indigo-600` for interactive elements |
-| Section divider | `<div className="w-20 h-1 bg-indigo-500 rounded mb-8" />` |
+| Section header | `<SectionHeader title subtitle? />` — do not hand-roll a heading + divider |
 | Max-width | `max-w-6xl mx-auto` on all section wrappers |
+| Scroll targets | every `<section>` has `id` and `scroll-mt-24` |
+| Colours | tokens only in `src/components/` (`bg-surface-*`, `fill-gauge-*`, `text-status-*`); hex lives in `index.css` |
 | `cn()` utility | `src/utils/cn.ts` — simple filter+join; not clsx or shadcn/ui |
-| Quotes | Single quotes (Prettier) |
-| Indent | 2 spaces (Prettier) |
-| Line width | 80 chars (Prettier) |
-| Trailing commas | ES5 style (Prettier) |
+| Formatting | Prettier: single quotes, 2-space indent, 80 chars, ES5 trailing commas |
 
 ---
 
@@ -191,21 +206,15 @@ Used in: `About.tsx`, `Contact.tsx`.
 | File | Location | Purpose |
 |------|----------|---------|
 | Profile photo | `src/assets/profile_pic.jpg` | About section avatar |
-| Profiler screenshot 1 | `src/assets/script-profiler-1.png` | ScriptProfilerDemo tab |
-| Profiler screenshot 2 | `src/assets/script-profiler-2.png` | ScriptProfilerDemo tab |
-| Favicon | `public/computer-chip.png` | Browser tab icon |
-| Resume | `public/resume.pdf` | Download link in About section |
-
-> **Note**: `public/resume.pdf` must exist or the download link in `About.tsx:66` will 404.
+| UNS Simulator screenshots ×5 | `src/assets/uns-sim-1..5.png` | Case study 5 carousel |
+| Script Profiler screenshots ×2 | `src/assets/script-profiler-1..2.png` | Case study 6 carousel |
+| Favicon | `public/computer-chip.png` (512×512) | Browser tab icon; declared `type="image/png"` in `index.html` |
+| Resume (optional) | `public/resume.pdf` | Served only when present **and** `PROFILE.resume` is set; `tests/content/profile.test.ts` fails if the two disagree |
 
 ---
 
-## Known Gaps & Dead Code
+## Deferred Until the Hosting Target Is Named
 
-| Item | File | Status | Notes |
-|------|------|--------|-------|
-| `NamespaceExplorer` | `src/components/NamespaceExplorer.tsx` | Unused | D3 SVG tree; import commented out in Demos.tsx |
-| `LogSimulator` | `src/components/LogSimulator.tsx` | Unused | Log stream; import commented out in Demos.tsx |
-| `useMqtt.ts` | `src/hooks/useMqtt.ts` | Unused | Module-level MQTT client; not imported anywhere |
-| Contact form submit | `src/components/Contact.tsx:130` | Non-functional | No `onSubmit` handler; button does nothing |
-| `resume.pdf` | `public/resume.pdf` | Runtime dep | Must be placed manually; not tracked in git |
+- `vite.config.ts` `base` (needed only for a sub-path host such as GitHub Pages)
+- `og:url`, a `<link rel="canonical">`, and an absolute `og:image` URL in `index.html`
+- Deploy automation in `.github/workflows/`

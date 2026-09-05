@@ -18,6 +18,7 @@ Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page appli
 | Scroll nav | Native anchors + `scroll-behavior: smooth` + `useActiveSection` (IntersectionObserver) |
 | Tests | Vitest 5 + Testing Library (jsdom), `tests/` |
 | CI | GitHub Actions `.github/workflows/ci.yml` — lint, typecheck, test, build on push and PR |
+| HTML shell | `index.html`: meta description + Open Graph + Twitter card (text mirrors `PROFILE`), `image/png` favicon, pre-paint theme script |
 | Code quality | ESLint + TypeScript strict + Prettier |
 
 ---
@@ -79,6 +80,7 @@ src/
 tests/
 ├── setup.ts                   jest-dom matchers; matchMedia + IntersectionObserver stubs
 ├── public-safety.test.ts      Denylist scan of src/**/*.{ts,tsx} + index.html (hashed tokens + shape regexes)
+├── shell.test.ts              index.html: favicon type image/png; description / og:* / twitter:* text equals PROFILE.pitch and "PROFILE.name — PROFILE.headline"
 ├── content/uns.test.ts        UNS tree invariants: fullPath chain, leaf payloads in [0,1], topic count
 ├── content/architecture.test.ts  7 tiers indexed 1..7, non-empty fields, broker schemaRule, readsFrom ⊆ tiers 4–7
 ├── content/caseStudies.test.ts  6 studies, unique ids in D5 order, four narrative fields + ≥1 metric each, carousels reference 5 and 2 images
@@ -94,6 +96,10 @@ tests/
 └── hooks/useActiveSection.test.tsx
 .github/workflows/ci.yml       lint → typecheck → test → build
 .env.example                   The three VITE_EMAILJS_* keys, blank, one comment each (copy to git-ignored .env)
+index.html                     HTML shell: image/png favicon, meta description + Open Graph + Twitter tags (hand-mirrored from PROFILE), Google Fonts, pre-paint theme script
+public/computer-chip.png       Favicon (512×512); the only file under public/
+docs/architecture.md           Deep reference: component tree, content layer, data flows, tokens, tests
+thoughts/                      Task artifacts (untracked, not ignored) — never referenced from code or docs
 ```
 
 ---
@@ -199,7 +205,7 @@ Hero and FadeInWrapper additionally read useReducedMotion() to drop the backgrou
 - **Accent color**: use `indigo-500` / `indigo-600` for interactive/highlight elements
 - **Design tokens**: no six-digit hex literals in `src/components/` — add a `--color-*` / `--font-*` to the `@theme` block in `src/index.css` and use the generated utility (`bg-surface-card`, `fill-gauge-good`, `text-status-running`, `font-mono`)
 - **Copy lives in `src/content/`**: components render `PROFILE`, `UNS_ROOT`, etc.; do not inline prose or namespace paths in JSX
-- **Section divider**: `<div className="w-20 h-1 bg-indigo-500 rounded mb-8" />`
+- **Section header**: use `<SectionHeader title subtitle? />` from `src/components/common/` — it owns the heading and the `w-16 h-1 bg-indigo-500 rounded` divider; do not hand-roll one
 - **Max-width**: `max-w-6xl mx-auto` on all section containers
 - **Scroll sections**: every `<section>` needs `id="..."` and `className="scroll-mt-24"`
 - **Animations**: use `<FadeInWrapper>` for scroll-triggered; use `motion.div` with `initial/animate` for mount-triggered (Hero pattern)
@@ -214,9 +220,11 @@ Hero and FadeInWrapper additionally read useReducedMotion() to drop the backgrou
 3. **Contact form is gated by EmailJS env at build time** — `getEmailConfig()` returns `null` unless all three `VITE_EMAILJS_*` keys are non-empty, and Contact then renders a mailto CTA instead of the form. Vite inlines the values at build, so the hosting environment must set them for the form to appear in production; `emailjs.send` only ever receives ids from the resolved config, never from `import.meta.env` directly
 4. **`tests/public-safety.test.ts` fails the build on internal names** — it scans `src/**/*.{ts,tsx}` and `index.html` for SHA-256-hashed tokens (brands, colleagues, site codes, hostnames, database names) and shape regexes (IPv4, `.corp`/`.local`, `ABC12`/`1AB` site codes, `XX00MES` databases). Never add plaintext to the hash list; the regeneration one-liner is in the file header. The fictional namespace is `Enterprise/Plant-A/…`, never a real place
 5. **Resume button is gated by `PROFILE.resume`** — About renders the download link only when `PROFILE.resume` is set in `src/content/profile.ts`, and `tests/content/profile.test.ts` fails if it is set while `public/resume.pdf` is absent. To ship the resume, add the PDF and set `resume: { href: '/resume.pdf', label: 'Download Resume' }`
+6. **`index.html` metadata is hand-mirrored from `PROFILE`** — the meta description, `og:description`, and `twitter:description` must equal `PROFILE.pitch`, and `og:title` / `twitter:title` must equal `PROFILE.name — PROFILE.headline`; `tests/shell.test.ts` fails on any drift, so change `src/content/profile.ts` and `index.html` together. `og:url`, a canonical tag, `og:image`, and `vite.config.ts` `base` are deliberately absent until the hosting target is named
+7. **`thoughts/` is untracked and not ignored** — it holds task artifacts (tickets, research, design, structure) that may name things the site must never publish. Do not `git add -A` or `git add .`; stage paths explicitly. Nothing under `src/`, `tests/`, or `docs/` may import or link to it
 
 ---
 
 ## Further Reading
 
-- [docs/architecture.md](docs/architecture.md) — full component tree, MQTT flow diagrams, UNS data shapes, theming internals, dead code inventory
+- [docs/architecture.md](docs/architecture.md) — full component tree, content-layer module table, data flows (theme, navigation, Hero cards, Architecture, Work, Contact, reduced motion), design tokens, test inventory, and what is deferred until the hosting target is named
