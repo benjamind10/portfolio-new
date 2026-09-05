@@ -1,71 +1,77 @@
 import React, { useState } from 'react';
 import { Sun, Moon, Menu, X } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import { Link } from 'react-scroll';
+import { useActiveSection } from '../hooks/useActiveSection';
+import { NAV_SECTIONS, SECTION_IDS } from '../content/sections';
+import { cn } from '../utils/cn';
+
+const LINK_CLASS =
+  'text-sm font-medium hover:text-indigo-500 dark:hover:text-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 cursor-pointer transition-colors duration-200';
+
+const ICON_BUTTON_CLASS =
+  'p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 transition-all';
 
 const Navbar: React.FC = () => {
   const { theme, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const activeId = useActiveSection(SECTION_IDS);
 
-  const links = [
-    { name: 'About', to: 'about' },
-    { name: 'Experience', to: 'experience' },
-    { name: 'Projects', to: 'demos' },
-    { name: 'Contact', to: 'contact' },
-  ];
+  const renderLinks = (onNavigate?: () => void) =>
+    NAV_SECTIONS.map(({ id, label }) => {
+      const isActive = activeId === id;
+      return (
+        <a
+          key={id}
+          href={`#${id}`}
+          aria-current={isActive ? 'true' : undefined}
+          onClick={onNavigate}
+          className={cn(
+            LINK_CLASS,
+            isActive
+              ? 'text-indigo-500 dark:text-indigo-400'
+              : 'text-gray-700 dark:text-gray-200'
+          )}
+        >
+          {label}
+        </a>
+      );
+    });
+
+  const themeButton = (
+    <button
+      onClick={toggle}
+      className={ICON_BUTTON_CLASS}
+      aria-label="Toggle Theme"
+    >
+      {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+    </button>
+  );
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-800">
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         {/* Logo */}
-        <Link
-          to="hero"
-          smooth={true}
-          offset={-96}
-          duration={500}
+        <a
+          href="#hero"
           className="text-xl font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer"
         >
           BD
-        </Link>
+        </a>
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center space-x-6">
-          {links.map(({ name, to }) => (
-            <Link
-              key={name}
-              to={to}
-              smooth={true}
-              spy={true}
-              offset={-96}
-              duration={500}
-              activeClass="!text-indigo-500 dark:!text-indigo-400"
-              className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-indigo-500 dark:hover:text-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 cursor-pointer transition-colors duration-200"
-            >
-              {name}
-            </Link>
-          ))}
-          <button
-            onClick={toggle}
-            className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 transition-all"
-            aria-label="Toggle Theme"
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          {renderLinks()}
+          {themeButton}
         </div>
 
         {/* Mobile menu icon */}
         <div className="md:hidden flex items-center space-x-4">
-          <button
-            onClick={toggle}
-            className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 transition-all"
-            aria-label="Toggle Theme"
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          {themeButton}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 transition-all"
+            className={ICON_BUTTON_CLASS}
             aria-label="Toggle Menu"
+            aria-expanded={menuOpen}
           >
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -76,21 +82,7 @@ const Navbar: React.FC = () => {
       {menuOpen && (
         <div className="md:hidden px-6 pb-6 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
           <div className="flex flex-col gap-4 mt-4">
-            {links.map(({ name, to }) => (
-              <Link
-                key={name}
-                to={to}
-                smooth={true}
-                spy={true}
-                offset={-96}
-                duration={500}
-                activeClass="!text-indigo-500 dark:!text-indigo-400"
-                onClick={() => setMenuOpen(false)}
-                className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-indigo-500 dark:hover:text-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 cursor-pointer transition-colors duration-200"
-              >
-                {name}
-              </Link>
-            ))}
+            {renderLinks(() => setMenuOpen(false))}
           </div>
         </div>
       )}

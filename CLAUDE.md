@@ -1,6 +1,6 @@
 # CLAUDE.md — Portfolio Project
 
-Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page application showcasing skills in Ignition, MQTT, and Unified Namespace (UNS). No backend, no router, no global state library. Single scrollable page with five sections.
+Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page application showcasing skills in Ignition, MQTT, and Unified Namespace (UNS). No backend, no router, no global state library. Single scrollable page with six sections in the order Hero → Architecture → Work → Experience → About → Contact.
 
 ---
 
@@ -10,13 +10,15 @@ Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page appli
 |-------|------------|
 | Framework | React 19 + TypeScript |
 | Build tool | Vite 6 |
-| Styling | Tailwind CSS v4 (class-based dark mode) |
+| Styling | Tailwind CSS v4 (class-based dark mode, `@theme` tokens in `src/index.css`) |
+| Fonts | Inter (body) + JetBrains Mono (`font-mono`), both from Google Fonts in `index.html` |
 | Animation | Framer Motion 12 |
 | Icons | Lucide React |
-| MQTT client | mqtt.js 5 |
-| Data viz | D3 v7 (unused/dead code currently) |
-| JSON rendering | react-json-view-lite |
-| Scroll nav | react-scroll |
+| Data viz | `d3-shape` only (`arc()` for the Hero OEE gauge; gauge colors are `@theme` tokens, not hex) |
+| Scroll nav | Native anchors + `scroll-behavior: smooth` + `useActiveSection` (IntersectionObserver) |
+| Tests | Vitest 5 + Testing Library (jsdom), `tests/` |
+| CI | GitHub Actions `.github/workflows/ci.yml` — lint, typecheck, test, build on push and PR |
+| HTML shell | `index.html`: meta description + Open Graph + Twitter card (text mirrors `PROFILE`), `image/png` favicon, pre-paint theme script |
 | Code quality | ESLint + TypeScript strict + Prettier |
 
 ---
@@ -25,34 +27,47 @@ Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page appli
 
 ```
 src/
-├── App.tsx                    Root component — imports and orders all sections
+├── App.tsx                    Root component — MotionConfig(reducedMotion="user") wrapper, orders all sections
 ├── main.tsx                   React entry point
-├── index.css                  Global CSS (Tailwind imports)
+├── index.css                  Global CSS (Tailwind imports, @theme tokens, html scroll-behavior: smooth)
 ├── components/
 │   ├── common/
 │   │   ├── FadeInWrapper.tsx  Framer Motion scroll-triggered fade-in wrapper
-│   │   └── ImageCarousel.tsx  Reusable prev/next image carousel with Framer Motion
-│   ├── Navbar.tsx             Sticky nav, theme toggle, mobile menu
-│   ├── Hero.tsx               Landing section with 3 animated dashboard cards (MQTT stream, OEE gauge, UNS path)
-│   ├── About.tsx              Profile photo, bio, skills, resume download
-│   ├── Experience.tsx         Work timeline (4 jobs, whileInView animation)
-│   ├── Demos.tsx              Tab container for image-based demos (UNS Simulator, Ignition Java Module)
-│   ├── UNSSimulatorDemo.tsx   Carousel of 5 UNS simulator screenshots
-│   ├── ScriptProfilerDemo.tsx Carousel of Ignition Java module screenshots
-│   ├── MQTTExplorer.tsx       Dual-mode MQTT browser — UNUSED (removed from Demos tabs)
-│   ├── UNSExplorer.tsx        Expandable UNS tree — UNUSED (removed from Demos tabs)
-│   ├── NamespaceExplorer.tsx  D3 SVG tree — UNUSED (commented out in Demos.tsx)
-│   ├── LogSimulator.tsx       Log stream UI — UNUSED (commented out in Demos.tsx)
-│   ├── Contact.tsx            Contact form + info (form submit is non-functional)
-│   └── Footer.tsx             Branding and social links
+│   │   ├── ImageCarousel.tsx  Reusable prev/next image carousel; lightbox is a role="dialog" with focus trap + focus return; requires `label`
+│   │   └── SectionHeader.tsx  Section title + indigo divider + optional subtitle
+│   ├── architecture/
+│   │   ├── ArchitectureDiagram.tsx  7 TierCards in a grid + SVG connectors + agentic-layer button under tiers 4–7
+│   │   ├── TierCard.tsx       aria-pressed tier button; shared-layout indigo ring on the selected card
+│   │   ├── TierDetail.tsx     layoutId panel: purpose / why separate / decision / technologies; broker embeds UnsExplorer. Also exports AgenticDetail
+│   │   └── UnsExplorer.tsx    Expandable topic tree over UNS_ROOT; selected leaf shows payload + schema rule
+│   ├── work/
+│   │   ├── CaseStudyGrid.tsx  Dense card grid; renders the selected study's panel inline after its card (col-span-full)
+│   │   ├── CaseStudyCard.tsx  aria-expanded / aria-controls disclosure button: title, summary, first metric, tags
+│   │   ├── CaseStudyPanel.tsx Problem / Constraint / Decision / Result + metrics + media (switch on media.kind / diagram)
+│   │   └── diagrams/          TierStackDiagram (reads TIERS), AgentDagDiagram, SemanticLayerDiagram, OeeForensicsDiagram (SVG)
+│   ├── Navbar.tsx             Sticky nav, theme toggle, mobile menu; anchors from content/sections.ts
+│   ├── Hero.tsx               Landing section: copy from content/profile.ts, 3 animated cards over content/uns.ts (MQTT stream, OEE gauge, UNS path)
+│   ├── Architecture.tsx       Centerpiece: owns selectedId (TierId | 'agentic', default 'broker'); renders diagram + detail from content/architecture.ts
+│   ├── About.tsx              Profile photo, bio, skills, four operating principles from PROFILE; resume button only when PROFILE.resume is set
+│   ├── Experience.tsx         Three-seat arc (SEATS legend + per-job seat badge) and timeline over JOBS (whileInView animation)
+│   ├── Work.tsx               Six case studies from content/caseStudies.ts; owns selectedId (string | null, click again to collapse)
+│   ├── ScrollToTopButton.tsx  Fixed scroll-to-top button, shown after 320 px
+│   ├── Contact.tsx            Branches on getEmailConfig(): EmailJS form when all three keys resolve, else a mailto CTA; info + labeled socials from PROFILE.links
+│   └── Footer.tsx             Branding and social links from PROFILE.links
+├── content/                   Typed content layer — every export has an exported interface
+│   ├── sections.ts            Section registry: id, label, inNav — page order and nav order
+│   ├── profile.ts             PROFILE: name, headline, pitch, CTAs (primary → #architecture), links (github/linkedin/email/location?), bio, skills, principles, resume? → Hero, About, Contact, Footer; ABOUT_COPY, CONTACT_COPY
+│   ├── architecture.ts        TIERS (7, TierId union), AGENTIC_LAYER (mcp/semantic/dag, readsFrom tiers 4–7), ARCHITECTURE_COPY → Architecture
+│   ├── caseStudies.ts         CASE_STUDIES (6, D5 order; problem/constraint/decision/result, metrics, tags, media), WORK_COPY → Work
+│   ├── experience.ts          JOBS (4, newest first, each tagged to a Seat), SEATS (integrator / vendor / manufacturer + lesson), EXPERIENCE_COPY → Experience
+│   └── uns.ts                 UNS_ROOT (fictional ISA-95 tree, UnsPayload leaves), getLeaves, MQTT_TOPICS → Hero cards + UnsExplorer
 ├── hooks/
 │   ├── useTheme.ts            Dark/light toggle with localStorage persistence
-│   └── useMqtt.ts            Module-level MQTT client — UNUSED (not imported)
-├── data/
-│   ├── unsData.ts             UnsNode tree (fullPath + OEE payload) → UNSExplorer
-│   └── unsTree.ts             Simple {name, children} tree → NamespaceExplorer (D3)
+│   └── useActiveSection.ts    IntersectionObserver over section ids → active nav link
 ├── utils/
-│   └── cn.ts                  Classname utility: filter(Boolean).join(' ')
+│   ├── cn.ts                  Classname utility: filter(Boolean).join(' ')
+│   └── emailConfig.ts         getEmailConfig(env?) → EmailConfig | null; null unless all three VITE_EMAILJS_* keys are non-empty
+├── vite-env.d.ts              ImportMetaEnv augmentation: the three optional VITE_EMAILJS_* keys
 └── assets/
     ├── profile_pic.jpg
     ├── script-profiler-1.png
@@ -62,6 +77,29 @@ src/
     ├── uns-sim-3.png
     ├── uns-sim-4.png
     └── uns-sim-5.png
+tests/
+├── setup.ts                   jest-dom matchers; matchMedia + IntersectionObserver stubs
+├── public-safety.test.ts      Denylist scan of src/**/*.{ts,tsx} + index.html (hashed tokens + shape regexes)
+├── shell.test.ts              index.html: favicon type image/png; description / og:* / twitter:* text equals PROFILE.pitch and "PROFILE.name — PROFILE.headline"
+├── content/uns.test.ts        UNS tree invariants: fullPath chain, leaf payloads in [0,1], topic count
+├── content/architecture.test.ts  7 tiers indexed 1..7, non-empty fields, broker schemaRule, readsFrom ⊆ tiers 4–7
+├── content/caseStudies.test.ts  6 studies, unique ids in D5 order, four narrative fields + ≥1 metric each, carousels reference 5 and 2 images
+├── content/experience.test.ts  4 jobs, every seat is a SEATS key, all three seats present, JOBS[0].title is the title of record
+├── content/profile.test.ts  Exactly 4 principles; if PROFILE.resume is set, public/resume.pdf must exist
+├── components/architecture.test.tsx  Click each tier → only its decision shows; broker shows a UNS leaf path; agentic panel
+├── components/work.test.tsx   Select a card → aria-expanded + its decision; select another → first collapses; carousel studies show images
+├── components/imageCarousel.test.tsx  Lightbox: role=dialog, aria-modal, focus on Close, Tab cycles inside, Escape closes, focus returns
+├── components/contact.test.tsx  getEmailConfig null-unless-complete; config=null → mailto CTA and no form; full config → form, send called with config ids (EmailJS mocked), labeled socials
+├── smoke/app.test.tsx         Renders App: landmarks, one section per SECTIONS id, nav anchors
+├── smoke/hero.test.tsx        Hero renders PROFILE copy; cards tick under fake timers
+├── smoke/about-experience.test.tsx  About renders bio / skills / principles, resume link iff PROFILE.resume; Experience renders every job and seat
+└── hooks/useActiveSection.test.tsx
+.github/workflows/ci.yml       lint → typecheck → test → build
+.env.example                   The three VITE_EMAILJS_* keys, blank, one comment each (copy to git-ignored .env)
+index.html                     HTML shell: image/png favicon, meta description + Open Graph + Twitter tags (hand-mirrored from PROFILE), Google Fonts, pre-paint theme script
+public/computer-chip.png       Favicon (512×512); the only file under public/
+docs/architecture.md           Deep reference: component tree, content layer, data flows, tokens, tests
+thoughts/                      Task artifacts (untracked, not ignored) — never referenced from code or docs
 ```
 
 ---
@@ -72,20 +110,19 @@ src/
 npm run dev       # Start Vite dev server with HMR
 npm run build     # tsc -b && vite build (type-checks first)
 npm run lint      # ESLint on all .ts/.tsx files
+npm run typecheck # tsc -b (app + node projects, includes tests/)
+npm test          # vitest run (jsdom)
+npm run test:watch
 npm run preview   # Serve the dist/ build locally
 ```
+
+CI runs the same four gates in order: `npm run lint && npm run typecheck && npm test && npm run build`.
 
 ---
 
 ## Environment Setup
 
-Create a `.env` file at the project root (already committed with default value):
-
-```
-VITE_MQTTBROKER=wss://broker.hivemq.com:8884/mqtt
-```
-
-This is required for `MQTTExplorer`'s live mode. The simulated mode works without it.
+No environment variables are needed to run the site. The contact form is optional: `src/utils/emailConfig.ts` reads `VITE_EMAILJS_SERVICE_ID`, `VITE_EMAILJS_TEMPLATE_ID`, and `VITE_EMAILJS_PUBLIC_KEY` (typed in `src/vite-env.d.ts`, documented in `.env.example`) from a git-ignored `.env` at build time. When all three are non-empty, Contact renders the EmailJS form; when any is missing, it renders a mailto CTA to `PROFILE.links.email` instead (see Known Gotchas). To enable the form: `cp .env.example .env` and fill in the values. There is no MQTT broker variable; the Hero's MQTT card is a local simulation.
 
 ---
 
@@ -93,16 +130,15 @@ This is required for `MQTTExplorer`'s live mode. The simulated mode works withou
 
 | Component | Purpose |
 |-----------|---------|
-| `App.tsx` | Assembles all sections in page order |
+| `App.tsx` | Assembles all sections in `SECTIONS` order: Hero, Architecture, Work, Experience, About, Contact; tints alternate (Architecture, Experience, Contact tinted) |
 | `Navbar.tsx` | Sticky nav; only consumer of `useTheme` |
-| `Hero.tsx` | Animated intro + 3 dashboard cards: MQTT stream, OEE gauge, UNS path (self-contained, no real MQTT) |
-| `About.tsx` | Profile, skills, resume download link |
-| `Experience.tsx` | Timeline with `motion.div whileInView` animations |
-| `Demos.tsx` | Tab switcher — 2 tabs: UNS Simulator, Ignition Java Module |
-| `UNSSimulatorDemo.tsx` | Image carousel of 5 UNS simulator screenshots |
-| `ScriptProfilerDemo.tsx` | Image carousel of Ignition Java module screenshots |
-| `ImageCarousel.tsx` | Reusable carousel: prev/next nav, position indicator, Framer Motion transitions |
-| `Contact.tsx` | Contact info + non-functional form |
+| `Hero.tsx` | Intro copy from `PROFILE`; 3 dashboard cards (MQTT stream, OEE gauge, UNS path) driven by `UNS_ROOT` leaves and `MQTT_TOPICS` — simulated, no real MQTT |
+| `Architecture.tsx` | Seven-tier reference architecture + agentic layer from `TIERS` / `AGENTIC_LAYER`; click a tier (or the agentic block) → `TierDetail` / `AgenticDetail`; broker detail embeds `UnsExplorer` over `UNS_ROOT` |
+| `About.tsx` | Profile photo, bio paragraphs, skills, and four operating principles from `PROFILE`; resume download rendered only when `PROFILE.resume` is set |
+| `Experience.tsx` | Three-seat arc (`SEATS`: integrator / vendor / manufacturer) and a timeline over `JOBS` from `content/experience.ts`; per-item `motion.div whileInView`, reduced motion via the root `MotionConfig` |
+| `Work.tsx` | Six case studies from `CASE_STUDIES` as a card grid; one expands inline at a time into `CaseStudyPanel`; studies 1–4 embed a diagram, 5–6 embed `ImageCarousel` |
+| `ImageCarousel.tsx` | Reusable carousel: prev/next nav, position indicator, Framer Motion transitions; click the image → lightbox dialog (focus trap, Escape, focus return) |
+| `Contact.tsx` | Contact info (email, optional `links.location`) and labeled social links from `PROFILE.links`; `<ContactForm config>` when `getEmailConfig()` is non-null, else `<MailtoCta email>`; accepts a `config` prop so tests can inject either branch |
 | `FadeInWrapper.tsx` | `whileInView` fade-in; wraps any content |
 
 ---
@@ -119,24 +155,45 @@ User clicks Sun/Moon in Navbar
 → All dark: CSS classes respond
 ```
 
-### 2. MQTT Explorer (Simulated / Live)
+### 2. Section Navigation
 ```
-isSimulated=true (default):
-  setInterval 2000ms → generateSimulatedMessage() → setMessages([...prev.slice(-49), msg])
-
-isSimulated=false:
-  mqtt.connect(VITE_MQTTBROKER) → subscribe('#') → on('message') → JSON.parse → setMessages
-  cleanup: client.end()
-
-UI: uniqueTopics list (left) ← click → selectedTopic → JsonView payload (right)
+content/sections.ts SECTIONS (page order; inNav marks nav links)
+→ Navbar renders <a href="#id"> for NAV_SECTIONS; logo → #hero
+→ html { scroll-behavior: smooth } + section.scroll-mt-24 land below the 96 px sticky nav
+→ useActiveSection(SECTION_IDS): one IntersectionObserver (rootMargin -96px) → most-visible id
+→ matching link gets aria-current="true" + indigo text
 ```
 
-### 3. UNS Explorer
+### 3. Hero Cards
 ```
-unsData (UnsNode tree with fullPath) → UNSExplorer
-  → renderNode() recursive
-  → expand state: Record<fullPath, boolean>
-  → leaf nodes with payload → <pre> JSON block
+content/uns.ts UNS_ROOT (Enterprise/Plant-A/… with UnsPayload leaves)
+→ getLeaves(UNS_ROOT).filter(hasPayload) = OEE_NODES; MQTT_TOPICS = one `<leaf>/state` per leaf
+→ Hero: three setIntervals (2500 / 4000 / 3500 ms) pick the next message / OEE node / UNS path
+→ gauge color class from oeeFillClass() (fill-gauge-good|warn|bad); state color from text-status-*
+```
+
+### 4. Architecture Section
+```
+content/architecture.ts TIERS (7, index 1..7) + AGENTIC_LAYER (readsFrom ⊆ tiers 4–7)
+→ Architecture owns selectedId: TierId | 'agentic' (default 'broker')
+→ ArchitectureDiagram: TierCard buttons (aria-pressed) + SVG connectors; agentic button spans the consumed columns
+→ TierDetail (layoutId "architecture-detail") shows purpose / whySeparate / decision / technologies
+→ tier.id === 'broker' → <UnsExplorer root={UNS_ROOT} schemaRule={tier.schemaRule} /> — same tree the Hero streams
+```
+
+### 5. Work Section
+```
+content/caseStudies.ts CASE_STUDIES (6, D5 order) + WORK_COPY
+→ Work owns selectedId: string | null (nothing expanded by default; clicking the open card collapses it)
+→ CaseStudyGrid (grid-flow-row-dense): CaseStudyCard buttons; the selected study's CaseStudyPanel is rendered right after its card with col-span-full
+→ CaseStudyPanel: problem / constraint / decision / result, metrics, then media.kind === 'carousel' → ImageCarousel | 'diagram' → one of four diagram components
+```
+
+### 6. Reduced Motion
+```
+<MotionConfig reducedMotion="user"> in App.tsx
+→ every framer-motion element honors prefers-reduced-motion (transforms skipped, opacity kept)
+Hero and FadeInWrapper additionally read useReducedMotion() to drop the background SVG / delays
 ```
 
 ---
@@ -146,7 +203,9 @@ unsData (UnsNode tree with fullPath) → UNSExplorer
 - **Prettier**: single quotes, 2-space indent, 80-char lines, ES5 trailing commas
 - **Dark mode**: always pair light and dark variants — `text-gray-900 dark:text-white`
 - **Accent color**: use `indigo-500` / `indigo-600` for interactive/highlight elements
-- **Section divider**: `<div className="w-20 h-1 bg-indigo-500 rounded mb-8" />`
+- **Design tokens**: no six-digit hex literals in `src/components/` — add a `--color-*` / `--font-*` to the `@theme` block in `src/index.css` and use the generated utility (`bg-surface-card`, `fill-gauge-good`, `text-status-running`, `font-mono`)
+- **Copy lives in `src/content/`**: components render `PROFILE`, `UNS_ROOT`, etc.; do not inline prose or namespace paths in JSX
+- **Section header**: use `<SectionHeader title subtitle? />` from `src/components/common/` — it owns the heading and the `w-16 h-1 bg-indigo-500 rounded` divider; do not hand-roll one
 - **Max-width**: `max-w-6xl mx-auto` on all section containers
 - **Scroll sections**: every `<section>` needs `id="..."` and `className="scroll-mt-24"`
 - **Animations**: use `<FadeInWrapper>` for scroll-triggered; use `motion.div` with `initial/animate` for mount-triggered (Hero pattern)
@@ -156,13 +215,16 @@ unsData (UnsNode tree with fullPath) → UNSExplorer
 
 ## Known Gotchas
 
-1. **`useMqtt.ts` is not imported anywhere** — it connects at module scope if ever imported; do not import it without understanding the double-connection risk with `MQTTExplorer`
-2. **`MQTTExplorer`, `UNSExplorer`, `NamespaceExplorer` are dead code** — no longer imported by `Demos.tsx`; re-enable by adding them back to the `TABS` array
-3. **Contact form does nothing** — no `onSubmit` handler; the Send button submits nothing
-4. **`public/resume.pdf` must exist** — the About section has a hard-coded download link to `/resume.pdf`; if the file is missing, the button 404s silently
+1. **Adding a section means editing `src/content/sections.ts`** — `SectionId` is a closed union; the app smoke test asserts the DOM's `main section[id]` order equals `SECTIONS`, so add the entry there and mount the component in `App.tsx` in the same position
+2. **`useActiveSection` wants a stable `ids` array** — pass the module constant `SECTION_IDS` (or memoize); a fresh array each render rebuilds the observer
+3. **Contact form is gated by EmailJS env at build time** — `getEmailConfig()` returns `null` unless all three `VITE_EMAILJS_*` keys are non-empty, and Contact then renders a mailto CTA instead of the form. Vite inlines the values at build, so the hosting environment must set them for the form to appear in production; `emailjs.send` only ever receives ids from the resolved config, never from `import.meta.env` directly
+4. **`tests/public-safety.test.ts` fails the build on internal names** — it scans `src/**/*.{ts,tsx}` and `index.html` for SHA-256-hashed tokens (brands, colleagues, site codes, hostnames, database names) and shape regexes (IPv4, `.corp`/`.local`, `ABC12`/`1AB` site codes, `XX00MES` databases). Never add plaintext to the hash list; the regeneration one-liner is in the file header. The fictional namespace is `Enterprise/Plant-A/…`, never a real place
+5. **Resume button is gated by `PROFILE.resume`** — About renders the download link only when `PROFILE.resume` is set in `src/content/profile.ts`, and `tests/content/profile.test.ts` fails if it is set while `public/resume.pdf` is absent. To ship the resume, add the PDF and set `resume: { href: '/resume.pdf', label: 'Download Resume' }`
+6. **`index.html` metadata is hand-mirrored from `PROFILE`** — the meta description, `og:description`, and `twitter:description` must equal `PROFILE.pitch`, and `og:title` / `twitter:title` must equal `PROFILE.name — PROFILE.headline`; `tests/shell.test.ts` fails on any drift, so change `src/content/profile.ts` and `index.html` together. `og:url`, a canonical tag, `og:image`, and `vite.config.ts` `base` are deliberately absent until the hosting target is named
+7. **`thoughts/` is untracked and not ignored** — it holds task artifacts (tickets, research, design, structure) that may name things the site must never publish. Do not `git add -A` or `git add .`; stage paths explicitly. Nothing under `src/`, `tests/`, or `docs/` may import or link to it
 
 ---
 
 ## Further Reading
 
-- [docs/architecture.md](docs/architecture.md) — full component tree, MQTT flow diagrams, UNS data shapes, theming internals, dead code inventory
+- [docs/architecture.md](docs/architecture.md) — full component tree, content-layer module table, data flows (theme, navigation, Hero cards, Architecture, Work, Contact, reduced motion), design tokens, test inventory, and what is deferred until the hosting target is named

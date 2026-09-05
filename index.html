@@ -2,12 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/computer-chip.png" />
+    <link rel="icon" type="image/png" href="/computer-chip.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Description / Open Graph / Twitter text mirrors PROFILE.headline and PROFILE.pitch in src/content/profile.ts; tests/shell.test.ts fails if they drift. og:url, a canonical tag, and og:image wait on the hosting target. -->
+    <meta
+      name="description"
+      content="I design the data models that let manufacturing systems be reasoned about automatically: Unified Namespaces with contracts enforced at the edge, MES context on Ignition, and semantic layers built for machine consumers, so people and AI agents work from one trusted model of the plant."
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Ben Duran — Manufacturing Systems Architect · Unified Namespace, MES, Agentic AI"
+    />
+    <meta
+      property="og:description"
+      content="I design the data models that let manufacturing systems be reasoned about automatically: Unified Namespaces with contracts enforced at the edge, MES context on Ignition, and semantic layers built for machine consumers, so people and AI agents work from one trusted model of the plant."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="Ben Duran — Manufacturing Systems Architect · Unified Namespace, MES, Agentic AI"
+    />
+    <meta
+      name="twitter:description"
+      content="I design the data models that let manufacturing systems be reasoned about automatically: Unified Namespaces with contracts enforced at the edge, MES context on Ignition, and semantic layers built for machine consumers, so people and AI agents work from one trusted model of the plant."
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link href="/src/index.css" rel="stylesheet" />
