@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -9,7 +9,9 @@ interface CarouselImage {
 }
 
 interface ImageCarouselProps {
-  images: CarouselImage[];
+  images: readonly CarouselImage[];
+  /** Accessible name for the lightbox dialog, e.g. the study title. */
+  label: string;
 }
 
 const variants = {
@@ -24,10 +26,19 @@ const variants = {
   }),
 };
 
-const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
+const NAV_BUTTON_CLASS =
+  'rounded-full bg-black/40 p-2 text-white transition hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black/80';
+
+const FOCUSABLE =
+  'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+
+const ImageCarousel: React.FC<ImageCarouselProps> = ({ images, label }) => {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const openerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   const prev = () => {
     setDirection(-1);
@@ -41,59 +52,103 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
 
   useEffect(() => {
     if (!modalOpen) return;
-    const prev = document.body.style.overflow;
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setModalOpen(false);
     };
     document.addEventListener('keydown', onKey);
+    // Open: focus lands on the close button. Close: focus returns to the
+    // thumbnail that opened the dialog.
+    const opener = openerRef.current;
+    closeRef.current?.focus();
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
       document.removeEventListener('keydown', onKey);
+      opener?.focus();
     };
   }, [modalOpen]);
+
+  /** Keep Tab / Shift+Tab cycling inside the dialog while it is open. */
+  const trapFocus = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab' || !dialogRef.current) return;
+    const focusable = Array.from(
+      dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (
+      e.shiftKey &&
+      (active === first || !dialogRef.current.contains(active))
+    ) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="relative w-full overflow-hidden rounded border border-gray-300 shadow dark:border-gray-700">
-        <AnimatePresence initial={false} custom={direction} mode="wait">
-          <motion.img
-            key={index}
-            src={images[index].src}
-            alt={images[index].alt}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.3 }}
-            className="w-full object-contain cursor-zoom-in"
-            onClick={() => setModalOpen(true)}
-          />
-        </AnimatePresence>
+        <button
+          ref={openerRef}
+          type="button"
+          aria-label={`Open ${images[index].alt} full size`}
+          onClick={() => setModalOpen(true)}
+          className="block w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+        >
+          <AnimatePresence initial={false} custom={direction} mode="wait">
+            <motion.img
+              key={index}
+              src={images[index].src}
+              alt={images[index].alt}
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3 }}
+              className="w-full object-contain"
+            />
+          </AnimatePresence>
+        </button>
 
         <button
+          type="button"
+          aria-label="Previous image"
           onClick={prev}
-          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition hover:bg-indigo-600"
+          className={`absolute left-2 top-1/2 -translate-y-1/2 ${NAV_BUTTON_CLASS}`}
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={20} aria-hidden="true" />
         </button>
         <button
+          type="button"
+          aria-label="Next image"
           onClick={next}
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition hover:bg-indigo-600"
+          className={`absolute right-2 top-1/2 -translate-y-1/2 ${NAV_BUTTON_CLASS}`}
         >
-          <ChevronRight size={20} />
+          <ChevronRight size={20} aria-hidden="true" />
         </button>
       </div>
 
       <span className="text-sm text-gray-500 dark:text-gray-400">
         {index + 1} / {images.length}
       </span>
-      {modalOpen && typeof document !== 'undefined' &&
+      {modalOpen &&
+        typeof document !== 'undefined' &&
         createPortal(
           <AnimatePresence>
             <motion.div
               key="lightbox-backdrop"
+              ref={dialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={label}
+              onKeyDown={trapFocus}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -101,21 +156,39 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
               onClick={() => setModalOpen(false)}
             >
               <button
-                onClick={(e) => { e.stopPropagation(); setModalOpen(false); }}
-                className="absolute right-4 top-4 rounded-full bg-black/40 p-2 text-white transition hover:bg-indigo-600"
+                ref={closeRef}
+                type="button"
+                aria-label="Close"
+                onClick={e => {
+                  e.stopPropagation();
+                  setModalOpen(false);
+                }}
+                className={`absolute right-4 top-4 ${NAV_BUTTON_CLASS}`}
               >
-                <X size={24} />
+                <X size={24} aria-hidden="true" />
               </button>
 
-              <button onClick={(e) => { e.stopPropagation(); prev(); }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition hover:bg-indigo-600"
+              <button
+                type="button"
+                aria-label="Previous image"
+                onClick={e => {
+                  e.stopPropagation();
+                  prev();
+                }}
+                className={`absolute left-4 top-1/2 -translate-y-1/2 ${NAV_BUTTON_CLASS}`}
               >
-                <ChevronLeft size={28} />
+                <ChevronLeft size={28} aria-hidden="true" />
               </button>
-              <button onClick={(e) => { e.stopPropagation(); next(); }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition hover:bg-indigo-600"
+              <button
+                type="button"
+                aria-label="Next image"
+                onClick={e => {
+                  e.stopPropagation();
+                  next();
+                }}
+                className={`absolute right-4 top-1/2 -translate-y-1/2 ${NAV_BUTTON_CLASS}`}
               >
-                <ChevronRight size={28} />
+                <ChevronRight size={28} aria-hidden="true" />
               </button>
 
               <AnimatePresence initial={false} custom={direction} mode="wait">
@@ -130,7 +203,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
                   exit="exit"
                   transition={{ duration: 0.3 }}
                   className="max-h-[90vh] max-w-[90vw] object-contain"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={e => e.stopPropagation()}
                 />
               </AnimatePresence>
 
@@ -139,7 +212,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
               </span>
             </motion.div>
           </AnimatePresence>,
-          document.body,
+          document.body
         )}
     </div>
   );

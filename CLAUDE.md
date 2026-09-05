@@ -1,6 +1,6 @@
 # CLAUDE.md — Portfolio Project
 
-Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page application showcasing skills in Ignition, MQTT, and Unified Namespace (UNS). No backend, no router, no global state library. Single scrollable page with six sections in the order Hero → Architecture → Projects (`demos`) → Experience → About → Contact.
+Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page application showcasing skills in Ignition, MQTT, and Unified Namespace (UNS). No backend, no router, no global state library. Single scrollable page with six sections in the order Hero → Architecture → Work → Experience → About → Contact.
 
 ---
 
@@ -32,21 +32,24 @@ src/
 ├── components/
 │   ├── common/
 │   │   ├── FadeInWrapper.tsx  Framer Motion scroll-triggered fade-in wrapper
-│   │   ├── ImageCarousel.tsx  Reusable prev/next image carousel with Framer Motion
+│   │   ├── ImageCarousel.tsx  Reusable prev/next image carousel; lightbox is a role="dialog" with focus trap + focus return; requires `label`
 │   │   └── SectionHeader.tsx  Section title + indigo divider + optional subtitle
 │   ├── architecture/
 │   │   ├── ArchitectureDiagram.tsx  7 TierCards in a grid + SVG connectors + agentic-layer button under tiers 4–7
 │   │   ├── TierCard.tsx       aria-pressed tier button; shared-layout indigo ring on the selected card
 │   │   ├── TierDetail.tsx     layoutId panel: purpose / why separate / decision / technologies; broker embeds UnsExplorer. Also exports AgenticDetail
 │   │   └── UnsExplorer.tsx    Expandable topic tree over UNS_ROOT; selected leaf shows payload + schema rule
+│   ├── work/
+│   │   ├── CaseStudyGrid.tsx  Dense card grid; renders the selected study's panel inline after its card (col-span-full)
+│   │   ├── CaseStudyCard.tsx  aria-expanded / aria-controls disclosure button: title, summary, first metric, tags
+│   │   ├── CaseStudyPanel.tsx Problem / Constraint / Decision / Result + metrics + media (switch on media.kind / diagram)
+│   │   └── diagrams/          TierStackDiagram (reads TIERS), AgentDagDiagram, SemanticLayerDiagram, OeeForensicsDiagram (SVG)
 │   ├── Navbar.tsx             Sticky nav, theme toggle, mobile menu; anchors from content/sections.ts
 │   ├── Hero.tsx               Landing section: copy from content/profile.ts, 3 animated cards over content/uns.ts (MQTT stream, OEE gauge, UNS path)
 │   ├── Architecture.tsx       Centerpiece: owns selectedId (TierId | 'agentic', default 'broker'); renders diagram + detail from content/architecture.ts
 │   ├── About.tsx              Profile photo, bio, skills, resume download
 │   ├── Experience.tsx         Work timeline (4 jobs, whileInView animation)
-│   ├── Demos.tsx              Tab container for image-based demos (UNS Simulator, Ignition Java Module)
-│   ├── UNSSimulatorDemo.tsx   Carousel of 5 UNS simulator screenshots
-│   ├── ScriptProfilerDemo.tsx Carousel of Ignition Java module screenshots
+│   ├── Work.tsx               Six case studies from content/caseStudies.ts; owns selectedId (string | null, click again to collapse)
 │   ├── ScrollToTopButton.tsx  Fixed scroll-to-top button, shown after 320 px
 │   ├── Contact.tsx            Contact form (EmailJS) + info
 │   └── Footer.tsx             Branding and social links
@@ -54,6 +57,7 @@ src/
 │   ├── sections.ts            Section registry: id, label, inNav — page order and nav order
 │   ├── profile.ts             PROFILE: name, headline, pitch, CTAs (primary → #architecture), links → Hero
 │   ├── architecture.ts        TIERS (7, TierId union), AGENTIC_LAYER (mcp/semantic/dag, readsFrom tiers 4–7), ARCHITECTURE_COPY → Architecture
+│   ├── caseStudies.ts         CASE_STUDIES (6, D5 order; problem/constraint/decision/result, metrics, tags, media), WORK_COPY → Work
 │   └── uns.ts                 UNS_ROOT (fictional ISA-95 tree, UnsPayload leaves), getLeaves, MQTT_TOPICS → Hero cards + UnsExplorer
 ├── hooks/
 │   ├── useTheme.ts            Dark/light toggle with localStorage persistence
@@ -74,7 +78,10 @@ tests/
 ├── public-safety.test.ts      Denylist scan of src/**/*.{ts,tsx} + index.html (hashed tokens + shape regexes)
 ├── content/uns.test.ts        UNS tree invariants: fullPath chain, leaf payloads in [0,1], topic count
 ├── content/architecture.test.ts  7 tiers indexed 1..7, non-empty fields, broker schemaRule, readsFrom ⊆ tiers 4–7
+├── content/caseStudies.test.ts  6 studies, unique ids in D5 order, four narrative fields + ≥1 metric each, carousels reference 5 and 2 images
 ├── components/architecture.test.tsx  Click each tier → only its decision shows; broker shows a UNS leaf path; agentic panel
+├── components/work.test.tsx   Select a card → aria-expanded + its decision; select another → first collapses; carousel studies show images
+├── components/imageCarousel.test.tsx  Lightbox: role=dialog, aria-modal, focus on Close, Tab cycles inside, Escape closes, focus returns
 ├── smoke/app.test.tsx         Renders App: landmarks, one section per SECTIONS id, nav anchors
 ├── smoke/hero.test.tsx        Hero renders PROFILE copy; cards tick under fake timers
 └── hooks/useActiveSection.test.tsx
@@ -109,16 +116,14 @@ No environment variables are needed to run the site. The contact form reads `VIT
 
 | Component | Purpose |
 |-----------|---------|
-| `App.tsx` | Assembles all sections in `SECTIONS` order: Hero, Architecture, Demos, Experience, About, Contact; tints alternate (Architecture, Experience, Contact tinted) |
+| `App.tsx` | Assembles all sections in `SECTIONS` order: Hero, Architecture, Work, Experience, About, Contact; tints alternate (Architecture, Experience, Contact tinted) |
 | `Navbar.tsx` | Sticky nav; only consumer of `useTheme` |
 | `Hero.tsx` | Intro copy from `PROFILE`; 3 dashboard cards (MQTT stream, OEE gauge, UNS path) driven by `UNS_ROOT` leaves and `MQTT_TOPICS` — simulated, no real MQTT |
 | `Architecture.tsx` | Seven-tier reference architecture + agentic layer from `TIERS` / `AGENTIC_LAYER`; click a tier (or the agentic block) → `TierDetail` / `AgenticDetail`; broker detail embeds `UnsExplorer` over `UNS_ROOT` |
 | `About.tsx` | Profile, skills, resume download link |
 | `Experience.tsx` | Timeline with `motion.div whileInView` animations |
-| `Demos.tsx` | Tab switcher — 2 tabs: UNS Simulator, Ignition Java Module |
-| `UNSSimulatorDemo.tsx` | Image carousel of 5 UNS simulator screenshots |
-| `ScriptProfilerDemo.tsx` | Image carousel of Ignition Java module screenshots |
-| `ImageCarousel.tsx` | Reusable carousel: prev/next nav, position indicator, Framer Motion transitions |
+| `Work.tsx` | Six case studies from `CASE_STUDIES` as a card grid; one expands inline at a time into `CaseStudyPanel`; studies 1–4 embed a diagram, 5–6 embed `ImageCarousel` |
+| `ImageCarousel.tsx` | Reusable carousel: prev/next nav, position indicator, Framer Motion transitions; click the image → lightbox dialog (focus trap, Escape, focus return) |
 | `Contact.tsx` | Contact info + non-functional form |
 | `FadeInWrapper.tsx` | `whileInView` fade-in; wraps any content |
 
@@ -162,7 +167,15 @@ content/architecture.ts TIERS (7, index 1..7) + AGENTIC_LAYER (readsFrom ⊆ tie
 → tier.id === 'broker' → <UnsExplorer root={UNS_ROOT} schemaRule={tier.schemaRule} /> — same tree the Hero streams
 ```
 
-### 5. Reduced Motion
+### 5. Work Section
+```
+content/caseStudies.ts CASE_STUDIES (6, D5 order) + WORK_COPY
+→ Work owns selectedId: string | null (nothing expanded by default; clicking the open card collapses it)
+→ CaseStudyGrid (grid-flow-row-dense): CaseStudyCard buttons; the selected study's CaseStudyPanel is rendered right after its card with col-span-full
+→ CaseStudyPanel: problem / constraint / decision / result, metrics, then media.kind === 'carousel' → ImageCarousel | 'diagram' → one of four diagram components
+```
+
+### 6. Reduced Motion
 ```
 <MotionConfig reducedMotion="user"> in App.tsx
 → every framer-motion element honors prefers-reduced-motion (transforms skipped, opacity kept)
