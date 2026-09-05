@@ -1,3 +1,4 @@
+import { MotionConfig } from 'framer-motion';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -9,18 +10,20 @@ import ScrollToTopButton from './components/ScrollToTopButton';
 
 function App() {
   return (
-    <div className="min-h-screen transition-colors duration-300 bg-white text-gray-900 dark:bg-gray-900 dark:text-white">
-      <Navbar />
-      <main>
-        <Hero />
-        <About />
-        <Experience />
-        <Demos />
-        <Contact />
-      </main>
-      <Footer />
-      <ScrollToTopButton />
-    </div>
+    <MotionConfig reducedMotion="user">
+      <div className="min-h-screen transition-colors duration-300 bg-white text-gray-900 dark:bg-gray-900 dark:text-white">
+        <Navbar />
+        <main>
+          <Hero />
+          <About />
+          <Experience />
+          <Demos />
+          <Contact />
+        </main>
+        <Footer />
+        <ScrollToTopButton />
+      </div>
+    </MotionConfig>
   );
 }
 

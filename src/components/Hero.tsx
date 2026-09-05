@@ -146,7 +146,7 @@ const Hero: React.FC = () => {
   return (
     <section
       id="hero"
-      className="relative min-h-screen px-6 pt-24 pb-12 flex flex-col md:flex-row items-start justify-between max-w-6xl mx-auto"
+      className="scroll-mt-24 relative min-h-screen px-6 pt-24 pb-12 flex flex-col md:flex-row items-start justify-between max-w-6xl mx-auto"
     >
       {/* Animated background */}
       {shouldAnimate && (
