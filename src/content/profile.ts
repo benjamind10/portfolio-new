@@ -26,13 +26,29 @@ export interface AboutCopy {
   principlesHeading: string;
 }
 
+export interface ContactCopy {
+  title: string;
+  subtitle: string;
+  infoHeading: string;
+  connectHeading: string;
+  /** Rendered in place of the form when the EmailJS keys are absent (D8). */
+  mailto: { lead: string; label: string };
+}
+
 export interface Profile {
   name: string;
   /** Positioning line under the name (D1). Not the employer's job title. */
   headline: string;
   pitch: string;
   cta: { primary: Link; secondary: Link };
-  links: { github: string; linkedin: string; email: string };
+  /** Canonical social links; Contact and Footer render only these. */
+  links: {
+    github: string;
+    linkedin: string;
+    email: string;
+    /** Region only, never a plant or site (D2). */
+    location?: string;
+  };
   /** About paragraphs, in order. */
   bio: readonly string[];
   skills: readonly string[];
@@ -45,6 +61,18 @@ export interface Profile {
 export const ABOUT_COPY: AboutCopy = {
   title: 'About Me',
   principlesHeading: 'Operating principles',
+};
+
+export const CONTACT_COPY: ContactCopy = {
+  title: 'Get In Touch',
+  subtitle:
+    "Have a plant-floor data, Ignition, or MES challenge worth talking through? Let's connect.",
+  infoHeading: 'Contact Information',
+  connectHeading: 'Connect with me',
+  mailto: {
+    lead: 'The quickest way to reach me is email. I read every message and reply within a couple of days.',
+    label: 'Email me',
+  },
 };
 
 export const PROFILE: Profile = {
@@ -61,6 +89,7 @@ export const PROFILE: Profile = {
     github: 'https://github.com/benjamind10',
     linkedin: 'https://linkedin.com/in/benjamin-duran-3a880a1b9',
     email: 'ben.duran@proton.me',
+    location: 'Richmond, VA',
   },
   bio: [
     'I work on the systems layer where plant-floor signals become useful manufacturing context: UNS topic structures, MQTT flows, Ignition projects, MES workflows, and the analytics that make OEE and equipment state visible. I also use agentic AI as part of that engineering workflow, helping accelerate code, automation, and process orchestration without losing the practical constraints of production systems.',

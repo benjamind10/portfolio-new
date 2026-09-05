@@ -1,6 +1,7 @@
 import React from 'react';
 import { Github, Linkedin, Mail } from 'lucide-react';
 import FadeInWrapper from './common/FadeInWrapper';
+import { PROFILE } from '../content/profile';
 
 const Footer: React.FC = () => {
   return (
@@ -23,7 +24,7 @@ const Footer: React.FC = () => {
           {/* Social Icons */}
           <div className="flex space-x-4 justify-center">
             <a
-              href="https://github.com/benjamind10"
+              href={PROFILE.links.github}
               aria-label="GitHub"
               target="_blank"
               rel="noopener noreferrer"
@@ -32,7 +33,7 @@ const Footer: React.FC = () => {
               <Github size={18} />
             </a>
             <a
-              href="https://linkedin.com/in/benjamin-duran-3a880a1b9"
+              href={PROFILE.links.linkedin}
               aria-label="LinkedIn"
               target="_blank"
               rel="noopener noreferrer"
@@ -41,7 +42,7 @@ const Footer: React.FC = () => {
               <Linkedin size={18} />
             </a>
             <a
-              href="mailto:ben.duran@proton.me"
+              href={`mailto:${PROFILE.links.email}`}
               aria-label="Email"
               className="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:text-indigo-400 hover:bg-gray-300 dark:hover:bg-gray-700 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 transition-all"
             >

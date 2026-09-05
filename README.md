@@ -38,8 +38,8 @@ cd portfolio
 # 2. Install dependencies
 npm install
 
-# 3. Create environment file
-echo "VITE_MQTTBROKER=wss://broker.hivemq.com:8884/mqtt" > .env
+# 3. (Optional) enable the contact form
+cp .env.example .env   # then fill in the three EmailJS values
 
 # 4. Start dev server
 npm run dev
@@ -47,7 +47,17 @@ npm run dev
 
 Open `http://localhost:5173` in your browser.
 
-> The `.env` file is already committed with the default HiveMQ public broker. The MQTT Explorer works in simulated mode without a broker connection.
+## Environment
+
+No environment variables are required. The contact form is opt-in and resolved at build time:
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_EMAILJS_SERVICE_ID` | EmailJS service id |
+| `VITE_EMAILJS_TEMPLATE_ID` | EmailJS template id (receives `from_name`, `from_email`, `subject`, `message`) |
+| `VITE_EMAILJS_PUBLIC_KEY` | EmailJS public key |
+
+When all three are set (in a git-ignored `.env` locally, or in the hosting environment for production builds) the Contact section renders the EmailJS form. When any is missing it renders a mailto link instead, so the site never ships a form that cannot send. `.env.example` lists the keys; the types live in `src/vite-env.d.ts`.
 
 ---
 

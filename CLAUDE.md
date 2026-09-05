@@ -51,11 +51,11 @@ src/
 │   ├── Experience.tsx         Three-seat arc (SEATS legend + per-job seat badge) and timeline over JOBS (whileInView animation)
 │   ├── Work.tsx               Six case studies from content/caseStudies.ts; owns selectedId (string | null, click again to collapse)
 │   ├── ScrollToTopButton.tsx  Fixed scroll-to-top button, shown after 320 px
-│   ├── Contact.tsx            Contact form (EmailJS) + info
-│   └── Footer.tsx             Branding and social links
+│   ├── Contact.tsx            Branches on getEmailConfig(): EmailJS form when all three keys resolve, else a mailto CTA; info + labeled socials from PROFILE.links
+│   └── Footer.tsx             Branding and social links from PROFILE.links
 ├── content/                   Typed content layer — every export has an exported interface
 │   ├── sections.ts            Section registry: id, label, inNav — page order and nav order
-│   ├── profile.ts             PROFILE: name, headline, pitch, CTAs (primary → #architecture), links, bio, skills, principles, resume? → Hero, About; ABOUT_COPY
+│   ├── profile.ts             PROFILE: name, headline, pitch, CTAs (primary → #architecture), links (github/linkedin/email/location?), bio, skills, principles, resume? → Hero, About, Contact, Footer; ABOUT_COPY, CONTACT_COPY
 │   ├── architecture.ts        TIERS (7, TierId union), AGENTIC_LAYER (mcp/semantic/dag, readsFrom tiers 4–7), ARCHITECTURE_COPY → Architecture
 │   ├── caseStudies.ts         CASE_STUDIES (6, D5 order; problem/constraint/decision/result, metrics, tags, media), WORK_COPY → Work
 │   ├── experience.ts          JOBS (4, newest first, each tagged to a Seat), SEATS (integrator / vendor / manufacturer + lesson), EXPERIENCE_COPY → Experience
@@ -64,7 +64,9 @@ src/
 │   ├── useTheme.ts            Dark/light toggle with localStorage persistence
 │   └── useActiveSection.ts    IntersectionObserver over section ids → active nav link
 ├── utils/
-│   └── cn.ts                  Classname utility: filter(Boolean).join(' ')
+│   ├── cn.ts                  Classname utility: filter(Boolean).join(' ')
+│   └── emailConfig.ts         getEmailConfig(env?) → EmailConfig | null; null unless all three VITE_EMAILJS_* keys are non-empty
+├── vite-env.d.ts              ImportMetaEnv augmentation: the three optional VITE_EMAILJS_* keys
 └── assets/
     ├── profile_pic.jpg
     ├── script-profiler-1.png
@@ -85,11 +87,13 @@ tests/
 ├── components/architecture.test.tsx  Click each tier → only its decision shows; broker shows a UNS leaf path; agentic panel
 ├── components/work.test.tsx   Select a card → aria-expanded + its decision; select another → first collapses; carousel studies show images
 ├── components/imageCarousel.test.tsx  Lightbox: role=dialog, aria-modal, focus on Close, Tab cycles inside, Escape closes, focus returns
+├── components/contact.test.tsx  getEmailConfig null-unless-complete; config=null → mailto CTA and no form; full config → form, send called with config ids (EmailJS mocked), labeled socials
 ├── smoke/app.test.tsx         Renders App: landmarks, one section per SECTIONS id, nav anchors
 ├── smoke/hero.test.tsx        Hero renders PROFILE copy; cards tick under fake timers
 ├── smoke/about-experience.test.tsx  About renders bio / skills / principles, resume link iff PROFILE.resume; Experience renders every job and seat
 └── hooks/useActiveSection.test.tsx
 .github/workflows/ci.yml       lint → typecheck → test → build
+.env.example                   The three VITE_EMAILJS_* keys, blank, one comment each (copy to git-ignored .env)
 ```
 
 ---
@@ -112,7 +116,7 @@ CI runs the same four gates in order: `npm run lint && npm run typecheck && npm 
 
 ## Environment Setup
 
-No environment variables are needed to run the site. The contact form reads `VITE_EMAILJS_SERVICE_ID`, `VITE_EMAILJS_TEMPLATE_ID`, and `VITE_EMAILJS_PUBLIC_KEY` from a git-ignored `.env`; without them, submitting the form shows its error state (see Known Gotchas). There is no MQTT broker variable; the Hero's MQTT card is a local simulation.
+No environment variables are needed to run the site. The contact form is optional: `src/utils/emailConfig.ts` reads `VITE_EMAILJS_SERVICE_ID`, `VITE_EMAILJS_TEMPLATE_ID`, and `VITE_EMAILJS_PUBLIC_KEY` (typed in `src/vite-env.d.ts`, documented in `.env.example`) from a git-ignored `.env` at build time. When all three are non-empty, Contact renders the EmailJS form; when any is missing, it renders a mailto CTA to `PROFILE.links.email` instead (see Known Gotchas). To enable the form: `cp .env.example .env` and fill in the values. There is no MQTT broker variable; the Hero's MQTT card is a local simulation.
 
 ---
 
@@ -128,7 +132,7 @@ No environment variables are needed to run the site. The contact form reads `VIT
 | `Experience.tsx` | Three-seat arc (`SEATS`: integrator / vendor / manufacturer) and a timeline over `JOBS` from `content/experience.ts`; per-item `motion.div whileInView`, reduced motion via the root `MotionConfig` |
 | `Work.tsx` | Six case studies from `CASE_STUDIES` as a card grid; one expands inline at a time into `CaseStudyPanel`; studies 1–4 embed a diagram, 5–6 embed `ImageCarousel` |
 | `ImageCarousel.tsx` | Reusable carousel: prev/next nav, position indicator, Framer Motion transitions; click the image → lightbox dialog (focus trap, Escape, focus return) |
-| `Contact.tsx` | Contact info + non-functional form |
+| `Contact.tsx` | Contact info (email, optional `links.location`) and labeled social links from `PROFILE.links`; `<ContactForm config>` when `getEmailConfig()` is non-null, else `<MailtoCta email>`; accepts a `config` prop so tests can inject either branch |
 | `FadeInWrapper.tsx` | `whileInView` fade-in; wraps any content |
 
 ---
@@ -207,7 +211,7 @@ Hero and FadeInWrapper additionally read useReducedMotion() to drop the backgrou
 
 1. **Adding a section means editing `src/content/sections.ts`** — `SectionId` is a closed union; the app smoke test asserts the DOM's `main section[id]` order equals `SECTIONS`, so add the entry there and mount the component in `App.tsx` in the same position
 2. **`useActiveSection` wants a stable `ids` array** — pass the module constant `SECTION_IDS` (or memoize); a fresh array each render rebuilds the observer
-3. **Contact form fails without EmailJS env** — `emailjs.send` rejects before any network call when the three `VITE_EMAILJS_*` keys are undefined, and the UI shows "Something went wrong"
+3. **Contact form is gated by EmailJS env at build time** — `getEmailConfig()` returns `null` unless all three `VITE_EMAILJS_*` keys are non-empty, and Contact then renders a mailto CTA instead of the form. Vite inlines the values at build, so the hosting environment must set them for the form to appear in production; `emailjs.send` only ever receives ids from the resolved config, never from `import.meta.env` directly
 4. **`tests/public-safety.test.ts` fails the build on internal names** — it scans `src/**/*.{ts,tsx}` and `index.html` for SHA-256-hashed tokens (brands, colleagues, site codes, hostnames, database names) and shape regexes (IPv4, `.corp`/`.local`, `ABC12`/`1AB` site codes, `XX00MES` databases). Never add plaintext to the hash list; the regeneration one-liner is in the file header. The fictional namespace is `Enterprise/Plant-A/…`, never a real place
 5. **Resume button is gated by `PROFILE.resume`** — About renders the download link only when `PROFILE.resume` is set in `src/content/profile.ts`, and `tests/content/profile.test.ts` fails if it is set while `public/resume.pdf` is absent. To ship the resume, add the PDF and set `resume: { href: '/resume.pdf', label: 'Download Resume' }`
 
