@@ -2,16 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronDown, Wifi, Activity, GitBranch } from 'lucide-react';
 import { arc } from 'd3-shape';
-import { unsData, type UnsNode } from '../data/unsData';
+import { PROFILE } from '../content/profile';
+import { getLeaves, hasPayload, MQTT_TOPICS, UNS_ROOT } from '../content/uns';
 
 // --- MQTT simulation data ---
-const MQTT_TOPICS = [
-  'Enterprise/Richmond/Press/Line1/Machine1/state',
-  'Enterprise/Richmond/Press/Line2/Machine1/state',
-  'Enterprise/Richmond/Press/Line3/Machine2/state',
-  'Enterprise/Richmond/Assembly/Line1/Station1/state',
-  'Enterprise/Richmond/Assembly/Line2/Station1/state',
-];
 
 type MqttMessage = {
   id: number;
@@ -42,20 +36,23 @@ const generateMqttMessage = (): MqttMessage => ({
   ts: new Date().toISOString().slice(11, 19),
 });
 
-const stateColor = (s: string) =>
+const stateColor = (s: MqttMessage['state']) =>
   s === 'RUNNING'
-    ? 'text-green-400'
+    ? 'text-status-running'
     : s === 'ERROR'
-      ? 'text-red-400'
+      ? 'text-status-error'
       : s === 'STOPPED'
-        ? 'text-yellow-400'
-        : 'text-gray-400';
+        ? 'text-status-stopped'
+        : 'text-status-idle';
 
 // --- OEE data ---
-const getLeaves = (node: UnsNode): UnsNode[] =>
-  node.children ? node.children.flatMap(getLeaves) : [node];
+const OEE_NODES = getLeaves(UNS_ROOT).filter(hasPayload);
 
-const OEE_NODES = getLeaves(unsData);
+const METRICS = [
+  { key: 'availability', label: 'Avail' },
+  { key: 'quality', label: 'Quali' },
+  { key: 'performance', label: 'Perfo' },
+] as const;
 
 const buildArcPath = (value: number, outerR = 44, innerR = 32): string => {
   const startAngle = -Math.PI * 0.75;
@@ -75,8 +72,12 @@ const buildTrackPath = (outerR = 44, innerR = 32): string => {
   );
 };
 
-const oeeColor = (v: number) =>
-  v >= 0.85 ? '#6366f1' : v >= 0.75 ? '#f59e0b' : '#ef4444';
+const oeeFillClass = (v: number) =>
+  v >= 0.85
+    ? 'fill-gauge-good'
+    : v >= 0.75
+      ? 'fill-gauge-warn'
+      : 'fill-gauge-bad';
 
 // --- Animated background ---
 const BG_NODES = [
@@ -131,7 +132,7 @@ const Hero: React.FC = () => {
 
   const currentNode = OEE_NODES[oeeIndex];
 
-  const [unsIndex, setUnsIndex] = useState(2);
+  const [unsIndex, setUnsIndex] = useState(2 % OEE_NODES.length);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -142,6 +143,8 @@ const Hero: React.FC = () => {
 
   const currentUnsNode = OEE_NODES[unsIndex];
   const pathSegments = currentUnsNode.fullPath.split('/');
+  const [firstName, ...restOfName] = PROFILE.name.split(' ');
+  const [, site, area] = currentNode.fullPath.split('/');
 
   return (
     <section
@@ -165,7 +168,7 @@ const Hero: React.FC = () => {
                 y1={`${BG_NODES[a].y}%`}
                 x2={`${BG_NODES[b].x}%`}
                 y2={`${BG_NODES[b].y}%`}
-                stroke="#6366f1"
+                className="stroke-accent-500"
                 strokeWidth={1}
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: 1 }}
@@ -178,7 +181,7 @@ const Hero: React.FC = () => {
                 cx={`${node.x}%`}
                 cy={`${node.y}%`}
                 r={3}
-                fill="#6366f1"
+                className="fill-accent-500"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
                 transition={{
@@ -202,29 +205,29 @@ const Hero: React.FC = () => {
       >
         <p className="text-indigo-500 text-sm font-mono mb-2">Hello! I'm</p>
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">
-          Ben{' '}
-          <span className="text-indigo-600 dark:text-indigo-400">Duran</span>
+          {firstName}{' '}
+          <span className="text-indigo-600 dark:text-indigo-400">
+            {restOfName.join(' ')}
+          </span>
         </h1>
         <h2 className="text-xl md:text-2xl tracking-tight text-gray-700 dark:text-gray-300 mb-4">
-          Manufacturing Software Engineer
+          {PROFILE.headline}
         </h2>
         <p className="text-base text-gray-600 dark:text-gray-400 max-w-md mb-6">
-          I build the connective tissue between equipment data, Ignition, and
-          MES workflows: MQTT namespaces, OEE visibility, and practical AI tools
-          that help manufacturing teams move from raw signals to trusted action.
+          {PROFILE.pitch}
         </p>
         <div className="flex gap-4">
           <a
-            href="#demos"
+            href={PROFILE.cta.primary.href}
             className="px-5 py-2 rounded-md bg-indigo-600 text-white font-semibold text-sm shadow-sm hover:bg-indigo-700 active:scale-95 transition"
           >
-            View Demos
+            {PROFILE.cta.primary.label}
           </a>
           <a
-            href="#contact"
+            href={PROFILE.cta.secondary.href}
             className="px-5 py-2 rounded-md bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-white font-semibold text-sm shadow-sm hover:bg-gray-300 dark:hover:bg-gray-700 active:scale-95 transition"
           >
-            Contact
+            {PROFILE.cta.secondary.label}
           </a>
         </div>
       </motion.div>
@@ -244,7 +247,7 @@ const Hero: React.FC = () => {
             transition: { type: 'spring', stiffness: 220, damping: 18 },
           }}
         >
-          <div className="bg-white dark:bg-[#0e0f1a] rounded-xl border border-gray-200 dark:border-gray-600 p-4 font-mono text-xs shadow-lg shadow-indigo-500/10">
+          <div className="bg-white dark:bg-surface-card rounded-xl border border-gray-200 dark:border-gray-600 p-4 font-mono text-xs shadow-lg shadow-indigo-500/10">
             {/* Terminal header */}
             <div className="flex items-center justify-between mb-3 text-gray-500">
               <div className="flex gap-1">
@@ -297,7 +300,7 @@ const Hero: React.FC = () => {
 
         {/* OEE Gauge Card */}
         <motion.div
-          className="bg-white dark:bg-[#0e0f1a] rounded-xl border border-gray-200 dark:border-gray-600 p-4 shadow-lg shadow-indigo-500/10"
+          className="bg-white dark:bg-surface-card rounded-xl border border-gray-200 dark:border-gray-600 p-4 shadow-lg shadow-indigo-500/10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, ease: 'easeOut', delay: 0.4 }}
@@ -314,7 +317,7 @@ const Hero: React.FC = () => {
               <span>oee.live</span>
             </div>
             <span className="text-gray-500 font-mono text-xs">
-              Richmond / Press
+              {site} / {area}
             </span>
           </div>
           {/* Body: gauge left, metrics right */}
@@ -335,11 +338,11 @@ const Hero: React.FC = () => {
                 >
                   <path
                     d={buildTrackPath()}
-                    className="fill-gray-200 dark:fill-[#1f2937]"
+                    className="fill-gray-200 dark:fill-gauge-track"
                   />
                   <path
-                    d={buildArcPath(currentNode.payload.OEE)}
-                    fill={oeeColor(currentNode.payload.OEE)}
+                    d={buildArcPath(currentNode.payload.oee)}
+                    className={oeeFillClass(currentNode.payload.oee)}
                   />
                   <text
                     textAnchor="middle"
@@ -348,13 +351,13 @@ const Hero: React.FC = () => {
                     fontWeight="bold"
                     className="fill-gray-900 dark:fill-white"
                   >
-                    {Math.round(currentNode.payload.OEE * 100)}%
+                    {Math.round(currentNode.payload.oee * 100)}%
                   </text>
                   <text
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fontSize={6}
-                    fill="#9ca3af"
+                    className="fill-gauge-label"
                     y={14}
                   >
                     OEE
@@ -364,32 +367,30 @@ const Hero: React.FC = () => {
             </div>
             {/* Metric bar rows */}
             <div className="flex flex-col gap-1.5 font-mono text-xs flex-1">
-              {(['Availability', 'Quality', 'Performance'] as const).map(
-                key => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between gap-2"
-                  >
-                    <span className="text-gray-500">{key.slice(0, 5)}</span>
-                    <div className="flex-1 h-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                      <motion.div
-                        className="h-full rounded-full bg-indigo-500"
-                        initial={{ width: 0 }}
-                        animate={{
-                          width: `${Math.round(currentNode.payload[key] * 100)}%`,
-                        }}
-                        transition={{
-                          duration: shouldAnimate ? 0.6 : 0,
-                          ease: 'easeOut',
-                        }}
-                      />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-300 w-8 text-right">
-                      {Math.round(currentNode.payload[key] * 100)}%
-                    </span>
+              {METRICS.map(({ key, label }) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <span className="text-gray-500">{label}</span>
+                  <div className="flex-1 h-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full bg-indigo-500"
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${Math.round(currentNode.payload[key] * 100)}%`,
+                      }}
+                      transition={{
+                        duration: shouldAnimate ? 0.6 : 0,
+                        ease: 'easeOut',
+                      }}
+                    />
                   </div>
-                )
-              )}
+                  <span className="text-gray-700 dark:text-gray-300 w-8 text-right">
+                    {Math.round(currentNode.payload[key] * 100)}%
+                  </span>
+                </div>
+              ))}
               <div className="mt-1 text-indigo-400 text-[10px] truncate">
                 {currentNode.fullPath.split('/').slice(-2).join(' › ')}
               </div>
@@ -399,7 +400,7 @@ const Hero: React.FC = () => {
 
         {/* UNS Path Card */}
         <motion.div
-          className="flex bg-white dark:bg-[#0e0f1a] rounded-xl border border-gray-200 dark:border-gray-600 p-4 shadow-lg shadow-indigo-500/10 flex-col gap-2"
+          className="flex bg-white dark:bg-surface-card rounded-xl border border-gray-200 dark:border-gray-600 p-4 shadow-lg shadow-indigo-500/10 flex-col gap-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, ease: 'easeOut', delay: 0.6 }}
@@ -449,19 +450,19 @@ const Hero: React.FC = () => {
             <span>
               OEE{' '}
               <span className="text-indigo-400">
-                {Math.round(currentUnsNode.payload.OEE * 100)}%
+                {Math.round(currentUnsNode.payload.oee * 100)}%
               </span>
             </span>
             <span>
               Avail{' '}
               <span className="text-gray-700 dark:text-gray-300">
-                {Math.round(currentUnsNode.payload.Availability * 100)}%
+                {Math.round(currentUnsNode.payload.availability * 100)}%
               </span>
             </span>
             <span>
               Qual{' '}
               <span className="text-gray-700 dark:text-gray-300">
-                {Math.round(currentUnsNode.payload.Quality * 100)}%
+                {Math.round(currentUnsNode.payload.quality * 100)}%
               </span>
             </span>
           </div>

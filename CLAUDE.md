@@ -10,10 +10,11 @@ Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page appli
 |-------|------------|
 | Framework | React 19 + TypeScript |
 | Build tool | Vite 6 |
-| Styling | Tailwind CSS v4 (class-based dark mode) |
+| Styling | Tailwind CSS v4 (class-based dark mode, `@theme` tokens in `src/index.css`) |
+| Fonts | Inter (body) + JetBrains Mono (`font-mono`), both from Google Fonts in `index.html` |
 | Animation | Framer Motion 12 |
 | Icons | Lucide React |
-| Data viz | `d3-shape` only (`arc()` for the Hero OEE gauge) |
+| Data viz | `d3-shape` only (`arc()` for the Hero OEE gauge; gauge colors are `@theme` tokens, not hex) |
 | Scroll nav | Native anchors + `scroll-behavior: smooth` + `useActiveSection` (IntersectionObserver) |
 | Tests | Vitest 5 + Testing Library (jsdom), `tests/` |
 | CI | GitHub Actions `.github/workflows/ci.yml` — lint, typecheck, test, build on push and PR |
@@ -27,14 +28,14 @@ Ben Duran's Industry 4.0 portfolio — a React 19 + TypeScript single-page appli
 src/
 ├── App.tsx                    Root component — MotionConfig(reducedMotion="user") wrapper, orders all sections
 ├── main.tsx                   React entry point
-├── index.css                  Global CSS (Tailwind imports, html scroll-behavior: smooth)
+├── index.css                  Global CSS (Tailwind imports, @theme tokens, html scroll-behavior: smooth)
 ├── components/
 │   ├── common/
 │   │   ├── FadeInWrapper.tsx  Framer Motion scroll-triggered fade-in wrapper
 │   │   ├── ImageCarousel.tsx  Reusable prev/next image carousel with Framer Motion
 │   │   └── SectionHeader.tsx  Section title + indigo divider + optional subtitle
 │   ├── Navbar.tsx             Sticky nav, theme toggle, mobile menu; anchors from content/sections.ts
-│   ├── Hero.tsx               Landing section with 3 animated dashboard cards (MQTT stream, OEE gauge, UNS path)
+│   ├── Hero.tsx               Landing section: copy from content/profile.ts, 3 animated cards over content/uns.ts (MQTT stream, OEE gauge, UNS path)
 │   ├── About.tsx              Profile photo, bio, skills, resume download
 │   ├── Experience.tsx         Work timeline (4 jobs, whileInView animation)
 │   ├── Demos.tsx              Tab container for image-based demos (UNS Simulator, Ignition Java Module)
@@ -43,13 +44,13 @@ src/
 │   ├── ScrollToTopButton.tsx  Fixed scroll-to-top button, shown after 320 px
 │   ├── Contact.tsx            Contact form (EmailJS) + info
 │   └── Footer.tsx             Branding and social links
-├── content/
-│   └── sections.ts            Section registry: id, label, inNav — page order and nav order
+├── content/                   Typed content layer — every export has an exported interface
+│   ├── sections.ts            Section registry: id, label, inNav — page order and nav order
+│   ├── profile.ts             PROFILE: name, headline, pitch, CTAs, links → Hero
+│   └── uns.ts                 UNS_ROOT (fictional ISA-95 tree, UnsPayload leaves), getLeaves, MQTT_TOPICS → Hero cards
 ├── hooks/
 │   ├── useTheme.ts            Dark/light toggle with localStorage persistence
 │   └── useActiveSection.ts    IntersectionObserver over section ids → active nav link
-├── data/
-│   └── unsData.ts             UnsNode tree (fullPath + OEE payload) → Hero cards
 ├── utils/
 │   └── cn.ts                  Classname utility: filter(Boolean).join(' ')
 └── assets/
@@ -63,7 +64,10 @@ src/
     └── uns-sim-5.png
 tests/
 ├── setup.ts                   jest-dom matchers; matchMedia + IntersectionObserver stubs
+├── public-safety.test.ts      Denylist scan of src/**/*.{ts,tsx} + index.html (hashed tokens + shape regexes)
+├── content/uns.test.ts        UNS tree invariants: fullPath chain, leaf payloads in [0,1], topic count
 ├── smoke/app.test.tsx         Renders App: landmarks, one section per SECTIONS id, nav anchors
+├── smoke/hero.test.tsx        Hero renders PROFILE copy; cards tick under fake timers
 └── hooks/useActiveSection.test.tsx
 .github/workflows/ci.yml       lint → typecheck → test → build
 ```
@@ -98,7 +102,7 @@ No environment variables are needed to run the site. The contact form reads `VIT
 |-----------|---------|
 | `App.tsx` | Assembles all sections in page order |
 | `Navbar.tsx` | Sticky nav; only consumer of `useTheme` |
-| `Hero.tsx` | Animated intro + 3 dashboard cards: MQTT stream, OEE gauge, UNS path (self-contained, no real MQTT) |
+| `Hero.tsx` | Intro copy from `PROFILE`; 3 dashboard cards (MQTT stream, OEE gauge, UNS path) driven by `UNS_ROOT` leaves and `MQTT_TOPICS` — simulated, no real MQTT |
 | `About.tsx` | Profile, skills, resume download link |
 | `Experience.tsx` | Timeline with `motion.div whileInView` animations |
 | `Demos.tsx` | Tab switcher — 2 tabs: UNS Simulator, Ignition Java Module |
@@ -131,7 +135,15 @@ content/sections.ts SECTIONS (page order; inNav marks nav links)
 → matching link gets aria-current="true" + indigo text
 ```
 
-### 3. Reduced Motion
+### 3. Hero Cards
+```
+content/uns.ts UNS_ROOT (Enterprise/Plant-A/… with UnsPayload leaves)
+→ getLeaves(UNS_ROOT).filter(hasPayload) = OEE_NODES; MQTT_TOPICS = one `<leaf>/state` per leaf
+→ Hero: three setIntervals (2500 / 4000 / 3500 ms) pick the next message / OEE node / UNS path
+→ gauge color class from oeeFillClass() (fill-gauge-good|warn|bad); state color from text-status-*
+```
+
+### 4. Reduced Motion
 ```
 <MotionConfig reducedMotion="user"> in App.tsx
 → every framer-motion element honors prefers-reduced-motion (transforms skipped, opacity kept)
@@ -145,6 +157,8 @@ Hero and FadeInWrapper additionally read useReducedMotion() to drop the backgrou
 - **Prettier**: single quotes, 2-space indent, 80-char lines, ES5 trailing commas
 - **Dark mode**: always pair light and dark variants — `text-gray-900 dark:text-white`
 - **Accent color**: use `indigo-500` / `indigo-600` for interactive/highlight elements
+- **Design tokens**: no six-digit hex literals in `src/components/` — add a `--color-*` / `--font-*` to the `@theme` block in `src/index.css` and use the generated utility (`bg-surface-card`, `fill-gauge-good`, `text-status-running`, `font-mono`)
+- **Copy lives in `src/content/`**: components render `PROFILE`, `UNS_ROOT`, etc.; do not inline prose or namespace paths in JSX
 - **Section divider**: `<div className="w-20 h-1 bg-indigo-500 rounded mb-8" />`
 - **Max-width**: `max-w-6xl mx-auto` on all section containers
 - **Scroll sections**: every `<section>` needs `id="..."` and `className="scroll-mt-24"`
@@ -158,7 +172,8 @@ Hero and FadeInWrapper additionally read useReducedMotion() to drop the backgrou
 1. **Adding a section means editing `src/content/sections.ts`** — `SectionId` is a closed union; the app smoke test asserts the DOM's `main section[id]` order equals `SECTIONS`, so add the entry there and mount the component in `App.tsx` in the same position
 2. **`useActiveSection` wants a stable `ids` array** — pass the module constant `SECTION_IDS` (or memoize); a fresh array each render rebuilds the observer
 3. **Contact form fails without EmailJS env** — `emailjs.send` rejects before any network call when the three `VITE_EMAILJS_*` keys are undefined, and the UI shows "Something went wrong"
-4. **`public/resume.pdf` must exist** — the About section has a hard-coded download link to `/resume.pdf`; if the file is missing, the button 404s silently
+4. **`tests/public-safety.test.ts` fails the build on internal names** — it scans `src/**/*.{ts,tsx}` and `index.html` for SHA-256-hashed tokens (brands, colleagues, site codes, hostnames, database names) and shape regexes (IPv4, `.corp`/`.local`, `ABC12`/`1AB` site codes, `XX00MES` databases). Never add plaintext to the hash list; the regeneration one-liner is in the file header. The fictional namespace is `Enterprise/Plant-A/…`, never a real place
+5. **`public/resume.pdf` must exist** — the About section has a hard-coded download link to `/resume.pdf`; if the file is missing, the button 404s silently
 
 ---
 

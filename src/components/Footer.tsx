@@ -4,7 +4,7 @@ import FadeInWrapper from './common/FadeInWrapper';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-gray-100 dark:bg-[#0f111a] border-t border-gray-200 dark:border-gray-700">
+    <footer className="bg-gray-100 dark:bg-surface-footer border-t border-gray-200 dark:border-gray-700">
       <FadeInWrapper>
         <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-gray-400">
           {/* Branding + Blurb */}

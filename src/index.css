@@ -1,6 +1,39 @@
 @import 'tailwindcss';
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Design tokens. Tailwind v4 turns each `--color-*` into utilities
+ * (`bg-surface-card`, `fill-gauge-good`, `text-status-running`, ...) and
+ * `--font-mono` into `font-mono`. Components use these classes; hex literals
+ * live only here.
+ */
+@theme {
+  --font-mono:
+    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+    'Liberation Mono', monospace;
+
+  /* Accent: indigo, matching the Tailwind indigo-500/600 the page already uses */
+  --color-accent-500: #6366f1;
+  --color-accent-600: #4f46e5;
+
+  /* Dark-mode surfaces for the Hero cards and the footer */
+  --color-surface-card: #0e0f1a;
+  --color-surface-footer: #0f111a;
+
+  /* Equipment state colors in the MQTT stream card */
+  --color-status-running: #4ade80;
+  --color-status-idle: #9ca3af;
+  --color-status-stopped: #facc15;
+  --color-status-error: #f87171;
+
+  /* OEE gauge */
+  --color-gauge-good: #6366f1;
+  --color-gauge-warn: #f59e0b;
+  --color-gauge-bad: #ef4444;
+  --color-gauge-track: #1f2937;
+  --color-gauge-label: #9ca3af;
+}
+
 html {
   scroll-behavior: smooth;
 }
