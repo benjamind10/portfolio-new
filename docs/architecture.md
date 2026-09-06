@@ -22,9 +22,9 @@ index.html                                  meta description / OG / Twitter tags
         │   │   └── <CaseStudyGrid />       src/components/work/CaseStudyGrid.tsx
         │   │       ├── <CaseStudyCard /> × 6   src/components/work/CaseStudyCard.tsx — aria-expanded buttons
         │   │       └── <CaseStudyPanel />  src/components/work/CaseStudyPanel.tsx (the selected study only)
-        │   │           ├── <ImageCarousel />   src/components/common/ImageCarousel.tsx (studies 5–6)
-        │   │           └── one of TierStackDiagram | AgentDagDiagram | SemanticLayerDiagram | OeeForensicsDiagram
-        │   │                               src/components/work/diagrams/ (studies 1–4)
+        │   │           ├── <ImageCarousel />   src/components/common/ImageCarousel.tsx (study 6)
+        │   │           └── one of TierStackDiagram | AgentDagDiagram | SemanticLayerDiagram | OeeForensicsDiagram | KnowledgeGraphDiagram
+        │   │                               src/components/work/diagrams/ (studies 1–5)
         │   ├── <Experience />              src/components/Experience.tsx — SEATS legend + JOBS timeline
         │   ├── <About />                   src/components/About.tsx — bio, skills, principles, optional resume
         │   └── <Contact />                 src/components/Contact.tsx — ContactForm | MailtoCta
@@ -55,7 +55,7 @@ Components render; copy and structure live here. Every exported value has an exp
 | `profile.ts` | `PROFILE: Profile { name, headline, pitch, cta, links { github, linkedin, email, location? }, bio, skills, principles, resume? }`, `ABOUT_COPY`, `CONTACT_COPY`, plus `Link`, `Principle`, `Resume` | `Hero`, `About`, `Contact`, `Footer`; `index.html` mirrors `headline` / `pitch` by hand (checked by `tests/shell.test.ts`) |
 | `uns.ts` | `UnsPayload { oee, availability, performance, quality }` (0–1 floats), `UnsNode { name, fullPath, payload?, children? }`, `UnsLeaf`, `UNS_ROOT`, `getLeaves()`, `hasPayload()`, `MQTT_TOPICS` | `Hero` (cards), `UnsExplorer` (via `TierDetail`) |
 | `architecture.ts` | `TierId` (7-member union), `Tier { id, index 1–7, name, purpose, whySeparate, decision, technologies, schemaRule? }`, `TIERS`, `AgenticComponent { id: mcp \| semantic \| dag, name, purpose, readsFrom }`, `AGENTIC_LAYER`, `ARCHITECTURE_COPY` | `Architecture`, `ArchitectureDiagram`, `TierDetail`, `TierStackDiagram` |
-| `caseStudies.ts` | `CaseStudy { id, title, summary, problem, constraint, decision, result, metrics, tags, media, links? }`, `Media` (`carousel` with images \| `diagram` with a `DiagramKind`), `CaseStudyImage`, `Metric`, `CASE_STUDIES` (6), `WORK_COPY` | `Work`, `CaseStudyGrid`, `CaseStudyCard`, `CaseStudyPanel` |
+| `caseStudies.ts` | `CaseStudy { id, title, summary, problem, constraint, decision, result, metrics, tags, media, links? }`, `Media` (`carousel` with images \| `diagram` with a `DiagramKind`), `CaseStudyImage`, `Metric`, `CASE_STUDIES` (6), `HIDDEN_CASE_STUDIES` (1, the script-profiler study kept off the grid; no component reads it), `WORK_COPY` | `Work`, `CaseStudyGrid`, `CaseStudyCard`, `CaseStudyPanel` |
 | `experience.ts` | `Seat` (`integrator \| vendor \| manufacturer`), `SeatInfo { label, lesson }`, `SEATS`, `Job { id, title, org, dates, mode?, summary, seat, tags }`, `JOBS` (4, newest first), `EXPERIENCE_COPY` | `Experience` |
 
 ### The namespace model
@@ -122,7 +122,7 @@ CASE_STUDIES + WORK_COPY
 → CaseStudyGrid (grid-flow-row-dense): CaseStudyCard buttons; the selected study's CaseStudyPanel follows its card with col-span-full
 → CaseStudyPanel: problem / constraint / decision / result, metrics, then
    media.kind === 'carousel' → <ImageCarousel images label />
-   media.kind === 'diagram'  → TierStackDiagram | AgentDagDiagram | SemanticLayerDiagram | OeeForensicsDiagram
+   media.kind === 'diagram'  → TierStackDiagram | AgentDagDiagram | SemanticLayerDiagram | OeeForensicsDiagram | KnowledgeGraphDiagram
 ```
 
 `TierStackDiagram` reads `TIERS` rather than duplicating tier names.
@@ -169,7 +169,7 @@ Vitest 5 + Testing Library under jsdom; `tests/setup.ts` registers jest-dom matc
 | `shell.test.ts` | `index.html` favicon `type="image/png"`; description / `og:*` / `twitter:*` text equals `PROFILE.pitch` and `PROFILE.name — PROFILE.headline`; both fonts requested |
 | `content/uns.test.ts` | `fullPath` chain, leaf payloads in [0, 1], `MQTT_TOPICS.length === leaves` |
 | `content/architecture.test.ts` | 7 tiers indexed 1..7, non-empty fields, broker `schemaRule`, `readsFrom ⊆ TIERS` |
-| `content/caseStudies.test.ts` | 6 studies, unique ids, four narrative fields + ≥ 1 metric, carousels reference 5 and 2 images |
+| `content/caseStudies.test.ts` | 6 studies, unique ids in order (`i3x-knowledge-graph` second), four narrative fields + ≥ 1 metric, 5 diagrams, the carousel study references 5 images; the hidden profiler study keeps its 2 and shares no id with the grid |
 | `content/experience.test.ts` | 4 jobs, every seat is a `SEATS` key, all three seats present, `JOBS[0].title` is the title of record |
 | `content/profile.test.ts` | Exactly 4 principles; if `PROFILE.resume` is set, `public/resume.pdf` exists |
 | `components/architecture.test.tsx` | Click each tier → only its decision shows; broker shows a leaf path; agentic panel |
@@ -206,8 +206,8 @@ CI (`.github/workflows/ci.yml`, Node 22) runs `npm run lint`, `npm run typecheck
 | File | Location | Purpose |
 |------|----------|---------|
 | Profile photo | `src/assets/profile_pic.jpg` | About section avatar |
-| UNS Simulator screenshots ×5 | `src/assets/uns-sim-1..5.png` | Case study 5 carousel |
-| Script Profiler screenshots ×2 | `src/assets/script-profiler-1..2.png` | Case study 6 carousel |
+| UNS Simulator screenshots ×5 | `src/assets/uns-sim-1..5.png` | Case study 6 carousel |
+| Script Profiler screenshots ×2 | `src/assets/script-profiler-1..2.png` | Hidden study in `HIDDEN_CASE_STUDIES`, not rendered |
 | Favicon | `public/computer-chip.png` (512×512) | Browser tab icon; declared `type="image/png"` in `index.html` |
 | Resume (optional) | `public/resume.pdf` | Served only when present **and** `PROFILE.resume` is set; `tests/content/profile.test.ts` fails if the two disagree |
 

@@ -44,7 +44,7 @@ src/
 │   │   ├── CaseStudyGrid.tsx  Dense card grid; renders the selected study's panel inline after its card (col-span-full)
 │   │   ├── CaseStudyCard.tsx  aria-expanded / aria-controls disclosure button: title, summary, first metric, tags
 │   │   ├── CaseStudyPanel.tsx Problem / Constraint / Decision / Result + metrics + media (switch on media.kind / diagram)
-│   │   └── diagrams/          TierStackDiagram (reads TIERS), AgentDagDiagram, SemanticLayerDiagram, OeeForensicsDiagram (SVG)
+│   │   └── diagrams/          TierStackDiagram (reads TIERS), AgentDagDiagram, SemanticLayerDiagram, OeeForensicsDiagram (SVG), KnowledgeGraphDiagram
 │   ├── Navbar.tsx             Sticky nav, theme toggle, mobile menu; anchors from content/sections.ts
 │   ├── Hero.tsx               Landing section: copy from content/profile.ts, 3 animated cards over content/uns.ts (MQTT stream, OEE gauge, UNS path)
 │   ├── Architecture.tsx       Centerpiece: owns selectedId (TierId | 'agentic', default 'broker'); renders diagram + detail from content/architecture.ts
@@ -58,7 +58,7 @@ src/
 │   ├── sections.ts            Section registry: id, label, inNav — page order and nav order
 │   ├── profile.ts             PROFILE: name, headline, pitch, CTAs (primary → #architecture), links (github/linkedin/email/location?), bio, skills, principles, resume? → Hero, About, Contact, Footer; ABOUT_COPY, CONTACT_COPY
 │   ├── architecture.ts        TIERS (7, TierId union), AGENTIC_LAYER (mcp/semantic/dag, readsFrom tiers 4–7), ARCHITECTURE_COPY → Architecture
-│   ├── caseStudies.ts         CASE_STUDIES (6, D5 order; problem/constraint/decision/result, metrics, tags, media), WORK_COPY → Work
+│   ├── caseStudies.ts         CASE_STUDIES (6, D5 order; problem/constraint/decision/result, metrics, tags, media), WORK_COPY → Work; HIDDEN_CASE_STUDIES holds the script-profiler study off the grid (no component reads it)
 │   ├── experience.ts          JOBS (4, newest first, each tagged to a Seat), SEATS (integrator / vendor / manufacturer + lesson), EXPERIENCE_COPY → Experience
 │   └── uns.ts                 UNS_ROOT (fictional ISA-95 tree, UnsPayload leaves), getLeaves, MQTT_TOPICS → Hero cards + UnsExplorer
 ├── hooks/
@@ -83,7 +83,7 @@ tests/
 ├── shell.test.ts              index.html: favicon type image/png; description / og:* / twitter:* text equals PROFILE.pitch and "PROFILE.name — PROFILE.headline"
 ├── content/uns.test.ts        UNS tree invariants: fullPath chain, leaf payloads in [0,1], topic count
 ├── content/architecture.test.ts  7 tiers indexed 1..7, non-empty fields, broker schemaRule, readsFrom ⊆ tiers 4–7
-├── content/caseStudies.test.ts  6 studies, unique ids in D5 order, four narrative fields + ≥1 metric each, carousels reference 5 and 2 images
+├── content/caseStudies.test.ts  6 studies, unique ids in order (i3x-knowledge-graph second), four narrative fields + ≥1 metric each, 5 diagrams, the one carousel references 5 images; HIDDEN_CASE_STUDIES is exactly script-profiler with 2 images
 ├── content/experience.test.ts  4 jobs, every seat is a SEATS key, all three seats present, JOBS[0].title is the title of record
 ├── content/profile.test.ts  Exactly 4 principles; if PROFILE.resume is set, public/resume.pdf must exist
 ├── components/architecture.test.tsx  Click each tier → only its decision shows; broker shows a UNS leaf path; agentic panel
@@ -136,7 +136,7 @@ No environment variables are needed to run the site. The contact form is optiona
 | `Architecture.tsx` | Seven-tier reference architecture + agentic layer from `TIERS` / `AGENTIC_LAYER`; click a tier (or the agentic block) → `TierDetail` / `AgenticDetail`; broker detail embeds `UnsExplorer` over `UNS_ROOT` |
 | `About.tsx` | Profile photo, bio paragraphs, skills, and four operating principles from `PROFILE`; resume download rendered only when `PROFILE.resume` is set |
 | `Experience.tsx` | Three-seat arc (`SEATS`: integrator / vendor / manufacturer) and a timeline over `JOBS` from `content/experience.ts`; per-item `motion.div whileInView`, reduced motion via the root `MotionConfig` |
-| `Work.tsx` | Six case studies from `CASE_STUDIES` as a card grid; one expands inline at a time into `CaseStudyPanel`; studies 1–4 embed a diagram, 5–6 embed `ImageCarousel` |
+| `Work.tsx` | Six case studies from `CASE_STUDIES` as a card grid; one expands inline at a time into `CaseStudyPanel`; studies 1–5 embed a diagram, 6 embeds `ImageCarousel` |
 | `ImageCarousel.tsx` | Reusable carousel: prev/next nav, position indicator, Framer Motion transitions; click the image → lightbox dialog (focus trap, Escape, focus return) |
 | `Contact.tsx` | Contact info (email, optional `links.location`) and labeled social links from `PROFILE.links`; `<ContactForm config>` when `getEmailConfig()` is non-null, else `<MailtoCta email>`; accepts a `config` prop so tests can inject either branch |
 | `FadeInWrapper.tsx` | `whileInView` fade-in; wraps any content |
@@ -186,7 +186,7 @@ content/architecture.ts TIERS (7, index 1..7) + AGENTIC_LAYER (readsFrom ⊆ tie
 content/caseStudies.ts CASE_STUDIES (6, D5 order) + WORK_COPY
 → Work owns selectedId: string | null (nothing expanded by default; clicking the open card collapses it)
 → CaseStudyGrid (grid-flow-row-dense): CaseStudyCard buttons; the selected study's CaseStudyPanel is rendered right after its card with col-span-full
-→ CaseStudyPanel: problem / constraint / decision / result, metrics, then media.kind === 'carousel' → ImageCarousel | 'diagram' → one of four diagram components
+→ CaseStudyPanel: problem / constraint / decision / result, metrics, then media.kind === 'carousel' → ImageCarousel | 'diagram' → one of five diagram components
 ```
 
 ### 6. Reduced Motion
