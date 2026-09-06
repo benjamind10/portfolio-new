@@ -68,7 +68,7 @@ export const CASE_STUDIES: readonly CaseStudy[] = [
     constraint:
       'Neither MES stack could be replaced, no plant could stop for a cut-over, and the model had to stay consumable by systems that did not exist yet, AI agents included. Everything had to be added around what was already running.',
     decision:
-      'One ISA-95 namespace on an EMQX broker, with the payload contract enforced at the edge and validated again in broker rules. Every other capability is its own tier that publishes back into the namespace rather than a client that pulls from a database: Ignition for MES context, Flow Software for OEE, Canary and Timebase for history, Snowflake for the enterprise view, FastAPI for governed egress.',
+      'One ISA-95 namespace on an EMQX broker, with the payload contract enforced at the edge and validated again in broker rules. Every other capability is its own tier that publishes back into the namespace rather than a client that pulls from a database: Ignition for MES context, Flow Software for OEE, TimescaleDB and Timebase for history, Snowflake for the enterprise view, FastAPI for governed egress.',
     result:
       'Six extrusion lines and five packaging lines publish through the same contract; a new plant onboards by configuration, with site as a dimension, instead of by new tables; eight services per site sit behind one governed API; and the agentic layer reads the same model of the plant a person does. The Architecture section above is this design.',
     metrics: [
@@ -82,7 +82,7 @@ export const CASE_STUDIES: readonly CaseStudy[] = [
       'Sparkplug B',
       'Ignition',
       'Flow Software',
-      'Canary',
+      'TimescaleDB',
       'Snowflake',
       'FastAPI',
     ],

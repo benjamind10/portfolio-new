@@ -78,6 +78,7 @@ export const JOBS: readonly Job[] = [
       'React',
       'PostgreSQL',
       'MES',
+      'TimescaleDB',
     ],
   },
   {

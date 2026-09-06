@@ -110,12 +110,17 @@ export const TIERS: readonly Tier[] = [
     index: 5,
     name: 'Historian',
     purpose:
-      'Canary and Timebase retain the high-resolution time series, so trends, forensics, and backfills are answered from raw history rather than from aggregates.',
+      'TimescaleDB historizes the namespace straight from the broker, retaining the high-resolution time series in PostgreSQL, so trends, forensics, and backfills are answered from raw history in the same SQL the rest of the stack speaks, not from aggregates. If needed, Timebase keeps raw value-quality-timestamp history at the edge devices.',
     whySeparate:
       'A broker retains the latest value; a historian retains every value. Conflating the two either bloats the broker or loses history.',
     decision:
       'Historize from the namespace, not from the PLC, so what is stored is exactly what every consumer saw.',
-    technologies: ['Canary', 'Timebase', 'Time-series storage'],
+    technologies: [
+      'TimescaleDB',
+      'Timebase',
+      'PostgreSQL',
+      'Time-series storage',
+    ],
   },
   {
     id: 'warehouse',
