@@ -139,12 +139,12 @@ export const TIERS: readonly Tier[] = [
     index: 7,
     name: 'Governed API egress',
     purpose:
-      'FastAPI services expose curated, versioned endpoints over the warehouse and the namespace, eight services per site, so consumers never query storage directly.',
+      'FastAPI services implement the CESMII i3X contract over the warehouse and the namespace, eight services per site. Consumers discover the plant as a knowledge graph of typed ISA-95 objects and their relationships, then query live and historical values through it, never storage directly.',
     whySeparate:
       'Egress is where governance lives. Authentication, rate limits, versioning, and audit belong at one boundary, not scattered across consumers.',
     decision:
-      'Every external consumer, AI agents included, goes through the API tier. The MCP servers in the agentic layer are API clients, never database clients.',
-    technologies: ['FastAPI', 'OpenAPI', 'Versioned contracts', 'Auth'],
+      'Every external consumer, AI agents included, goes through the i3X contract at the API tier. The MCP servers in the agentic layer are API clients, never database clients.',
+    technologies: ['i3X', 'FastAPI', 'OpenAPI', 'Auth'],
   },
 ];
 
