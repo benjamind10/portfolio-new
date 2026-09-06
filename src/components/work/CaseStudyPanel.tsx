@@ -7,6 +7,7 @@ import TierStackDiagram from './diagrams/TierStackDiagram';
 import AgentDagDiagram from './diagrams/AgentDagDiagram';
 import SemanticLayerDiagram from './diagrams/SemanticLayerDiagram';
 import OeeForensicsDiagram from './diagrams/OeeForensicsDiagram';
+import KnowledgeGraphDiagram from './diagrams/KnowledgeGraphDiagram';
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
   label,
@@ -38,6 +39,8 @@ const Diagram: React.FC<{ kind: DiagramKind }> = ({ kind }) => {
       return <SemanticLayerDiagram />;
     case 'oee-forensics':
       return <OeeForensicsDiagram />;
+    case 'knowledge-graph':
+      return <KnowledgeGraphDiagram />;
   }
 };
 
