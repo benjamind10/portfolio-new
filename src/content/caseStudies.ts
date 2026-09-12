@@ -1,8 +1,9 @@
 /**
  * The six case studies the Work section renders (design D5), each in the
- * Problem → Constraint → Decision → Result shape. Components only lay this
- * out. Names technologies, vendors, and counts; never a plant, site code,
- * host, database, or person (design D2).
+ * Problem → Constraint → Decision → Result shape, plus `HIDDEN_CASE_STUDIES`
+ * for work kept off the grid on purpose. Components only lay this out. Names
+ * technologies, vendors, and counts; never a plant, site code, host, database,
+ * or person (design D2).
  */
 import type { Link } from './profile';
 import sim1 from '../assets/uns-sim-1.png';
@@ -14,7 +15,11 @@ import profiler1 from '../assets/script-profiler-1.png';
 import profiler2 from '../assets/script-profiler-2.png';
 
 export type DiagramKind =
-  'tier-stack' | 'agent-dag' | 'semantic-layer' | 'oee-forensics';
+  | 'tier-stack'
+  | 'agent-dag'
+  | 'semantic-layer'
+  | 'oee-forensics'
+  | 'knowledge-graph';
 
 export interface CaseStudyImage {
   src: string;
@@ -68,7 +73,7 @@ export const CASE_STUDIES: readonly CaseStudy[] = [
     constraint:
       'Neither MES stack could be replaced, no plant could stop for a cut-over, and the model had to stay consumable by systems that did not exist yet, AI agents included. Everything had to be added around what was already running.',
     decision:
-      'One ISA-95 namespace on an EMQX broker, with the payload contract enforced at the edge and validated again in broker rules. Every other capability is its own tier that publishes back into the namespace rather than a client that pulls from a database: Ignition for MES context, Flow Software for OEE, Canary and Timebase for history, Snowflake for the enterprise view, FastAPI for governed egress.',
+      'One ISA-95 namespace on an EMQX broker, with the payload contract enforced at the edge and validated again in broker rules. Every other capability is its own tier that publishes back into the namespace rather than a client that pulls from a database: Ignition for MES context, Flow Software for OEE, TimescaleDB and Timebase for history, Snowflake for the enterprise view, FastAPI for governed egress.',
     result:
       'Six extrusion lines and five packaging lines publish through the same contract; a new plant onboards by configuration, with site as a dimension, instead of by new tables; eight services per site sit behind one governed API; and the agentic layer reads the same model of the plant a person does. The Architecture section above is this design.',
     metrics: [
@@ -82,11 +87,28 @@ export const CASE_STUDIES: readonly CaseStudy[] = [
       'Sparkplug B',
       'Ignition',
       'Flow Software',
-      'Canary',
+      'TimescaleDB',
       'Snowflake',
       'FastAPI',
     ],
     media: { kind: 'diagram', diagram: 'tier-stack' },
+  },
+  {
+    id: 'i3x-knowledge-graph',
+    title: 'Governed access over an i3X knowledge graph',
+    summary:
+      'The plant published as a typed graph of ISA-95 objects and relationships behind the CESMII i3X contract, so any consumer discovers what exists before it asks for a value.',
+    problem:
+      'Every consumer outside the plant, whether a warehouse loader, a dashboard, or an AI agent, had to be told what equipment existed, how it was arranged, and which topic or table held its values. That knowledge lived in people and in one-off integration code, so each new consumer was a new integration.',
+    constraint:
+      'Consumers could not touch storage, the model had to be discoverable by software without a person explaining it, and the surface had to speak a standard other vendors implement rather than a house API only this team understood.',
+    decision:
+      'Publish the plant as a knowledge graph behind the CESMII i3X contract: typed ISA-95 objects from enterprise to work cell, related to each other and to the namespace topics and historian series that carry their values. FastAPI services implement discovery, type exploration, relationship navigation, and live and historical value queries. The graph is the map; the tiers behind it are the territory.',
+    result:
+      "A consumer finds a line by walking the graph instead of asking an engineer, and reads its values through one governed surface. The same contract serves dashboards, the warehouse, and the agentic layer's MCP servers, and it is the contract more than forty vendors are implementing.",
+    metrics: [{ value: '8', label: 'services per site' }],
+    tags: ['i3X', 'Knowledge graph', 'FastAPI', 'ISA-95', 'CESMII'],
+    media: { kind: 'diagram', diagram: 'knowledge-graph' },
   },
   {
     id: 'agent-reporting-dag',
@@ -180,6 +202,14 @@ export const CASE_STUDIES: readonly CaseStudy[] = [
       ],
     },
   },
+];
+
+/**
+ * Studies kept off the grid on purpose (Ben, 2026-09-06: six cards, no orphan
+ * row). No component reads this list; it keeps each study's copy and image
+ * imports intact. To restore one, move its object back into `CASE_STUDIES`.
+ */
+export const HIDDEN_CASE_STUDIES: readonly CaseStudy[] = [
   {
     id: 'script-profiler',
     title: 'Ignition Script Profiler module',

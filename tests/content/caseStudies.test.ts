@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { CASE_STUDIES } from '../../src/content/caseStudies';
+import {
+  CASE_STUDIES,
+  HIDDEN_CASE_STUDIES,
+} from '../../src/content/caseStudies';
 
 const D5_ORDER = [
   'production-uns',
+  'i3x-knowledge-graph',
   'agent-reporting-dag',
   'semantic-layer',
   'oee-forensics',
   'uns-simulator',
-  'script-profiler',
 ];
 
 describe('CASE_STUDIES', () => {
@@ -36,11 +39,11 @@ describe('CASE_STUDIES', () => {
     }
   );
 
-  it('references 5 and 2 screenshots in the two carousel studies', () => {
+  it('references 5 screenshots in the one carousel study', () => {
     const carousels = CASE_STUDIES.flatMap(s =>
       s.media.kind === 'carousel' ? [s.media.images] : []
     );
-    expect(carousels.map(images => images.length)).toEqual([5, 2]);
+    expect(carousels.map(images => images.length)).toEqual([5]);
     for (const image of carousels.flat()) {
       expect(image.src).not.toBe('');
       expect(image.alt.trim()).not.toBe('');
@@ -49,6 +52,27 @@ describe('CASE_STUDIES', () => {
 
   it('gives every text study a diagram', () => {
     const diagrams = CASE_STUDIES.filter(s => s.media.kind === 'diagram');
-    expect(diagrams).toHaveLength(4);
+    expect(diagrams).toHaveLength(5);
+  });
+});
+
+describe('HIDDEN_CASE_STUDIES', () => {
+  it('holds exactly the script profiler with its 2-image carousel', () => {
+    expect(HIDDEN_CASE_STUDIES.map(s => s.id)).toEqual(['script-profiler']);
+    const [profiler] = HIDDEN_CASE_STUDIES;
+    expect(profiler.media.kind).toBe('carousel');
+    if (profiler.media.kind !== 'carousel') return;
+    expect(profiler.media.images).toHaveLength(2);
+    for (const image of profiler.media.images) {
+      expect(image.src).not.toBe('');
+      expect(image.alt.trim()).not.toBe('');
+    }
+  });
+
+  it('shares no id with CASE_STUDIES', () => {
+    const visible = new Set(CASE_STUDIES.map(s => s.id));
+    for (const study of HIDDEN_CASE_STUDIES) {
+      expect(visible.has(study.id)).toBe(false);
+    }
   });
 });

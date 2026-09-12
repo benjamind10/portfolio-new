@@ -73,4 +73,20 @@ describe('Work', () => {
       ).toBeInTheDocument();
     }
   });
+
+  it('mounts the knowledge-graph diagram inside the i3X study panel', async () => {
+    const user = userEvent.setup();
+    render(<Work />);
+    const study = CASE_STUDIES.find(s => s.id === 'i3x-knowledge-graph')!;
+
+    await user.click(cardButton(study.title));
+
+    const card = cardButton(study.title);
+    expect(card).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(study.decision)).toBeInTheDocument();
+    const panel = document.getElementById(card.getAttribute('aria-controls')!);
+    expect(panel).toContainElement(
+      screen.getByRole('img', { name: /knowledge graph/i })
+    );
+  });
 });
